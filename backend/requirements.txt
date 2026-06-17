@@ -1,0 +1,18 @@
+# Phase 1 — ingestion
+fastf1
+numpy
+
+# LangChain + Ollama + Supabase
+langchain
+langchain-core
+langchain-community
+langchain-ollama
+supabase
+
+# Phase 3 — API (installed now so the backend env is complete)
+fastapi
+uvicorn[standard]
+pydantic
+
+# Local config
+python-dotenv

@@ -1,0 +1,8 @@
+.env
+backend/.env
+venv
+CLAUDE.md
+__pycache__/
+*.pyc
+backend/f1_cache/
+.DS_Store
