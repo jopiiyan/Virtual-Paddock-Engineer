@@ -25,6 +25,27 @@ GRID_POINTS = 400
 # Loaded sessions, keyed by (year, gp, session_type) — telemetry load is expensive.
 _SESSION_CACHE: dict[tuple, "fastf1.core.Session"] = {}
 
+# Event schedule per year (lightweight; cached so we don't refetch each request).
+_SCHEDULE_CACHE: dict[int, list[dict]] = {}
+
+
+def get_schedule(year: int = 2025) -> list[dict]:
+    """All Grands Prix for a season: round, full name, location (used as the
+    race value/key), and country. Location is what FastF1 + our stored metadata
+    key on, so it doubles as the dropdown value."""
+    if year not in _SCHEDULE_CACHE:
+        sched = fastf1.get_event_schedule(year, include_testing=False)
+        _SCHEDULE_CACHE[year] = [
+            {
+                "round": int(r["RoundNumber"]),
+                "name": str(r["EventName"]),
+                "location": str(r["Location"]),
+                "country": str(r["Country"]),
+            }
+            for _, r in sched.iterrows()
+        ]
+    return _SCHEDULE_CACHE[year]
+
 
 def _fmt_laptime(td) -> str:
     total = td.total_seconds()

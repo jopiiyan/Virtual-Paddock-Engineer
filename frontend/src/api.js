@@ -7,6 +7,19 @@ export async function fetchFilters() {
   return res.json()
 }
 
+export async function fetchSchedule(year = 2025) {
+  const res = await fetch(`${API_BASE}/api/schedule?year=${year}`)
+  if (!res.ok) throw new Error(`schedule ${res.status}`)
+  return res.json()
+}
+
+export async function fetchTelemetry({ drivers, grand_prix, session_type = 'R', year = 2025 }) {
+  const q = new URLSearchParams({ drivers: drivers.join(','), grand_prix, session_type, year })
+  const res = await fetch(`${API_BASE}/api/telemetry?${q}`)
+  if (!res.ok) throw new Error(`telemetry ${res.status}`)
+  return res.json()
+}
+
 // Consume the SSE stream from POST /api/chat/stream.
 // EventSource is GET-only, so we use fetch + a manual reader and buffer partial
 // events (network chunks don't align to "\n\n" SSE boundaries).

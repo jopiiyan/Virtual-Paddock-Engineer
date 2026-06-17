@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 from backend.chain import PROMPT, RETRIEVAL_K, format_docs
 from backend.drivers import detect_driver, load_alias_map
-from backend.telemetry import compare_telemetry
+from backend.telemetry import compare_telemetry, get_schedule
 from backend.vectorstore import get_vector_store
 
 # Build once at startup — these are reused across every request.
@@ -117,6 +117,12 @@ async def chat_stream(req: ChatRequest):
         yield _sse({"type": "done"})
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/api/schedule")
+def schedule(year: int = 2025) -> dict:
+    """Full season calendar for the race dropdowns (all rounds, loaded live)."""
+    return {"year": year, "races": get_schedule(year)}
 
 
 @app.get("/api/telemetry")
