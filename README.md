@@ -7,13 +7,10 @@ The entire LLM and embedding stack runs **locally via Ollama** — no external A
 
 ---
 
-## Demo
+## Picture
 
-> _Add a screenshot or short GIF of the dashboard + chat here — this is the single highest-impact thing in the README._
-
-```
-![Dashboard demo](docs/demo.gif)
-```
+<img width="1154" height="791" alt="image" src="https://github.com/user-attachments/assets/87e3e7c8-1bfe-43d8-8cec-f0b340cc3a90" />
+<img width="1108" height="845" alt="image" src="https://github.com/user-attachments/assets/38980c5f-e350-41ba-bdac-c6337759a4de" />
 
 ---
 
