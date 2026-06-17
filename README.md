@@ -1,0 +1,204 @@
+# 🏎️ Virtual Paddock Engineer
+
+A full-stack Formula 1 analytics application that lets you **compare two drivers' race performance** through interactive telemetry charts and ask questions about it in **natural language**, answered by a Retrieval-Augmented Generation (RAG) pipeline grounded in real race data.
+
+The entire LLM and embedding stack runs **locally via Ollama** — no external API keys, no per-token cost.
+
+
+---
+
+## Demo
+
+> _Add a screenshot or short GIF of the dashboard + chat here — this is the single highest-impact thing in the README._
+
+```
+![Dashboard demo](docs/demo.gif)
+```
+
+---
+
+## Features
+
+- **Comparative driver dashboard** — pick two drivers and compare lap pace, tyre degradation, and top speed across a race through interactive charts.
+- **RAG chat assistant** — ask questions like _"How did Hamilton's hard tyres hold up?"_ and get answers grounded only in retrieved race data.
+- **Source "receipts"** — every answer shows the exact stint records it was based on, so nothing is taken on faith.
+- **Streaming responses** — answers stream token-by-token over Server-Sent Events (SSE).
+- **Fully local inference** — LLM (`llama3.2`) and embeddings (`nomic-embed-text`) run on Ollama; zero external API cost.
+
+---
+
+## Architecture
+
+```
+ ┌────────────────┐   HTTP / SSE   ┌──────────────────────────┐        ┌──────────────────────┐
+ │ React Frontend │ <───────────>  │ FastAPI Backend          │ <────> │   Supabase Cloud     │
+ │  (dashboard +  │                │ (LangChain LCEL pipeline)│        │ (PostgreSQL + vector)│
+ │   RAG chat)    │                └────────────┬─────────────┘        └──────────────────────┘
+ └────────────────┘                             │
+                                        ┌────────▼────────┐
+                                        │  Local Ollama   │
+                                        │ llama3.2 +      │
+                                        │ nomic-embed-text│
+                                        └─────────────────┘
+```
+
+**Data flow at query time:** question → embed → vector search (`match_documents`) returns top-k stint summaries → injected into a context-grounded prompt → local LLM streams the answer back, alongside the source records.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React, Web Streams API (SSE consumption) |
+| Backend | FastAPI, Server-Sent Events |
+| Orchestration | LangChain (LCEL) |
+| Vector store | Supabase (PostgreSQL + pgvector, HNSW index) |
+| LLM & embeddings | Ollama — `llama3.2`, `nomic-embed-text` (768-dim) |
+| Data source | FastF1 |
+
+---
+
+## How the RAG pipeline works
+
+1. **Ingestion** — `FastF1` telemetry is parsed into one record *per driver, per stint*. Each record is written as a natural-language summary (e.g. _"In the 2025 Silverstone GP, HAM ran stint 2 on Hard tyres over 14 laps: average lap 1:31.420, top speed 312 km/h, tyre degradation +0.080 s/lap."_). These summaries — not raw numbers — are what gets embedded, so they retrieve well against natural-language questions.
+2. **Storage** — each summary is embedded with `nomic-embed-text` (768-dim) and stored in a Supabase `documents` table, with structured tags (`driver`, `year`, `grand_prix`, `stint`, `compound`) in a `jsonb` metadata column for exact filtering.
+3. **Retrieval** — at query time, the question is embedded and matched against stored vectors via a `match_documents` SQL function (cosine distance, accelerated by an HNSW index), with optional metadata filtering.
+4. **Generation** — retrieved summaries are composed into a strict, context-grounded prompt and answered by a local LLM through a LangChain LCEL chain. The prompt forbids outside knowledge and instructs the model to say so when the answer isn't in the data.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Ollama](https://ollama.com/) installed and running
+- A [Supabase](https://supabase.com/) project
+- Python 3.10+ and Node.js 18+
+
+### 1. Pull the local models
+
+```bash
+ollama pull llama3.2
+ollama pull nomic-embed-text
+```
+
+### 2. Set up the Supabase schema
+
+In the Supabase SQL editor, run:
+
+```sql
+-- Enable pgvector
+create extension if not exists vector;
+
+-- Documents table (column names are what LangChain's SupabaseVectorStore expects)
+create table documents (
+    id bigserial primary key,
+    content text,
+    metadata jsonb,
+    embedding vector(768)        -- matches nomic-embed-text
+);
+
+-- Similarity-search function used by the retriever
+create function match_documents (
+    query_embedding vector(768),
+    match_count int default null,
+    filter jsonb default '{}'
+) returns table (
+    id bigint,
+    content text,
+    metadata jsonb,
+    similarity float
+)
+language plpgsql
+as $$
+#variable_conflict use_column
+begin
+    return query
+    select id, content, metadata,
+           1 - (documents.embedding <=> query_embedding) as similarity
+    from documents
+    where metadata @> filter
+    order by documents.embedding <=> query_embedding
+    limit match_count;
+end;
+$$;
+
+-- ANN index for fast vector search
+create index on documents using hnsw (embedding vector_cosine_ops);
+```
+
+### 3. Configure environment variables
+
+Create a `.env` file in the backend directory:
+
+```env
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_SERVICE_KEY=<your-service-role-key>
+INGEST_YEAR=2025
+INGEST_GP=Silverstone
+```
+
+> ⚠️ The service-role key is backend-only — never expose it to the frontend or commit it to git. Add `.env` to `.gitignore`.
+
+### 4. Run the backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Ingest a race into Supabase (one-time, per race)
+python -m backend.ingestion
+
+# Start the API
+uvicorn backend.main:app --reload --port 8000
+```
+
+### 5. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the dev server URL (e.g. `http://localhost:5173`), pick two drivers, and start asking questions.
+
+---
+
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── ingestion.py      # FastF1 → LangChain Documents → Supabase
+│   ├── vectorstore.py    # Shared Supabase + embeddings wiring
+│   ├── chain.py          # LCEL RAG chain (standalone-runnable)
+│   ├── main.py           # FastAPI app (/api/chat, SSE streaming)
+│   └── requirements.txt
+├── frontend/             # React dashboard + chat UI
+└── README.md
+```
+
+> _Adjust the paths above to match your actual layout._
+
+---
+
+## Limitations & Roadmap
+
+This is currently a **semantic-retrieval RAG** system. That works well for *descriptive* questions ("tell me about driver X's stint"), but it has a known limitation worth being explicit about: it can't reliably answer *analytical* questions ("which driver had the worst degradation?"), because those require ranking or aggregating across **all** records, not retrieving the most semantically similar few.
+
+Planned improvements:
+
+- [ ] **Query router + text-to-SQL** — send analytical questions to a SQL path that queries the structured stint data directly, instead of forcing them through vector search.
+- [ ] **Evaluation harness** — a golden Q&A set with retrieval/answer metrics (faithfulness, context relevance, correctness) so changes can be validated rather than guessed at.
+- [ ] **Self-query retrieval** — derive metadata filters from natural language automatically (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
+- [ ] **Hybrid search** — combine keyword (BM25) and vector retrieval for exact tokens like driver codes and circuit names.
+- [ ] **Conversational memory** — history-aware retrieval for follow-up questions.
+
+---
+
+## Acknowledgments
+
+- [FastF1](https://github.com/theOehrly/Fast-F1) for the Formula 1 telemetry data.
+- [LangChain](https://github.com/langchain-ai/langchain), [Supabase](https://supabase.com/), and [Ollama](https://ollama.com/) for the RAG, storage, and local-inference stack.
