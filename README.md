@@ -1,4 +1,4 @@
-# 🏎️ Virtual Paddock Engineer
+# Virtual Paddock Engineer
 
 A full-stack Formula 1 analytics application that lets you **compare two drivers' race performance** through interactive telemetry charts and ask questions about it in **natural language**, answered by a Retrieval-Augmented Generation (RAG) pipeline grounded in real race data.
 
