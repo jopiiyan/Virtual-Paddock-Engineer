@@ -1,6 +1,3 @@
--- Phase 1a — run this once in the Supabase SQL editor.
--- nomic-embed-text produces 768-dim vectors; the column AND the function must both say vector(768).
-
 create extension if not exists vector;
 
 create table documents (

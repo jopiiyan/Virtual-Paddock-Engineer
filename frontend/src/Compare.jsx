@@ -3,6 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 import { fetchTelemetry } from './api'
+import Dropdown from './Dropdown'
 
 const COLORS = ['#e10600', '#00d2be'] // driver A (red), driver B (teal)
 
@@ -147,21 +148,18 @@ export default function Compare({ races, drivers }) {
       <div className="controls compare-controls">
         <label>
           Grand Prix
-          <select value={race} onChange={(e) => setRace(e.target.value)}>
-            {races.map((r) => <option key={r.round} value={r.location}>{r.name}</option>)}
-          </select>
+          <Dropdown className="wide" ariaLabel="Grand Prix" value={race} onChange={setRace}
+            options={races.map((r) => ({ value: r.location, label: r.name }))} />
         </label>
         <label>
           Driver A
-          <select value={a} onChange={(e) => setA(e.target.value)}>
-            {drivers.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <Dropdown className="narrow" ariaLabel="Driver A" value={a} onChange={setA}
+            options={drivers.map((d) => ({ value: d, label: d }))} />
         </label>
         <label>
           Driver B
-          <select value={b} onChange={(e) => setB(e.target.value)}>
-            {drivers.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <Dropdown className="narrow" ariaLabel="Driver B" value={b} onChange={setB}
+            options={drivers.map((d) => ({ value: d, label: d }))} />
         </label>
         <button className="primary" onClick={run} disabled={loading}>
           {loading ? 'Loading telemetry…' : 'Compare'}

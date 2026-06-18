@@ -1,11 +1,4 @@
-"""Phase 1b — FastF1 → LangChain Documents → Supabase pgvector.
-
-One Document per driver per stint. `page_content` is a natural-language summary
-(embedded + semantically matched); `metadata` is for exact filtering only.
-
-Run as a script to ingest the default race into Supabase:
-    python -m backend.ingestion        # from the project root
-Requires SUPABASE_URL + SUPABASE_SERVICE_KEY in the environment (or a .env file).
+"""FastF1 -> LangChain Documents -> Supabase pgvector.
 """
 
 import os
@@ -138,7 +131,10 @@ def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[
 
     session_label = SESSION_LABELS.get(session_type, session_type)
     results = session.results
-    winner_time = fmt_racetime(results.iloc[0]["Time"]) if len(results) else None
+    # The winner's Time is the absolute race time; everyone else's Time is the
+    # gap to the winner. So a finisher's own finishing time = winner_td + gap.
+    winner_td = results.iloc[0]["Time"] if len(results) else None
+    winner_time = fmt_racetime(winner_td)
 
     docs = []
     for _, row in results.iterrows():
@@ -156,9 +152,14 @@ def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[
         pos_int = int(pos) if finished else None
 
         if pos_int == 1:
-            timing = f"won the race in a total time of {winner_time}" if winner_time else "won the race"
+            timing = f"won the race in a finishing time of {winner_time}" if winner_time else "won the race"
         elif finished and status == "Finished" and pd.notna(row["Time"]):
-            timing = f"finished P{pos_int}, +{row['Time'].total_seconds():.3f}s behind the winner"
+            gap = row["Time"].total_seconds()
+            finish_time = fmt_racetime(winner_td + row["Time"]) if winner_td is not None and pd.notna(winner_td) else None
+            timing = (
+                f"finished P{pos_int} in a finishing time of {finish_time} (+{gap:.3f}s behind the winner)"
+                if finish_time else f"finished P{pos_int}, +{gap:.3f}s behind the winner"
+            )
         elif finished:
             # Lapped or classified-but-not-on-lead-lap (Status carries '+1 Lap' etc.)
             timing = f"finished P{pos_int} ({status})"
