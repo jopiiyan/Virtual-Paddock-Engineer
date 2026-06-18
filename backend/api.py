@@ -9,7 +9,6 @@ Endpoints
 Driver is auto-detected from the question text (Hamilton -> HAM); grand_prix and
 session_type come from explicit dropdowns. We retrieve docs separately (not via
 the StrOutputParser chain) so the retrieved stints can be returned as "receipts".
-
 Run:  uvicorn backend.api:app --reload --port 8000   (from the project root)
 """
 
