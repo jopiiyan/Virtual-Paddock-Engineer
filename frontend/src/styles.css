@@ -38,10 +38,34 @@ body {
 }
 .controls { display: flex; gap: 1rem; }
 .controls label { display: flex; flex-direction: column; font-size: 0.7rem; color: var(--muted); gap: 0.25rem; }
-.controls select {
+/* Custom dropdown */
+.dd { position: relative; }
+.dd.wide { min-width: 230px; }
+.dd.narrow { min-width: 96px; }
+.dd-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
   background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0.4rem 0.5rem; font-size: 0.85rem;
+  border-radius: 8px; padding: 0.5rem 0.65rem; font-size: 0.88rem; cursor: pointer;
+  transition: border-color 0.15s ease;
 }
+.dd-trigger:hover { border-color: #3a3f4d; }
+.dd.open .dd-trigger { border-color: var(--accent); }
+.dd-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-arrow { color: var(--muted); transition: transform 0.15s ease; flex-shrink: 0; }
+.dd.open .dd-arrow { transform: rotate(180deg); }
+
+.dd-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  margin: 0; padding: 0.25rem; list-style: none;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  max-height: 280px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.dd-option {
+  padding: 0.45rem 0.55rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  color: var(--text); white-space: nowrap;
+}
+.dd-option:hover { background: var(--border); }
+.dd-option.active { background: var(--accent); color: #fff; }
 
 .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1rem; flex: 1; min-height: 0; margin-top: 1rem; }
 
@@ -88,7 +112,7 @@ body {
 .warn { color: #f0a020; font-size: 0.8rem; align-self: center; }
 
 /* Compare section */
-.compare { margin-top: 1rem; overflow-y: auto; }
+.compare { margin-top: 1rem; flex: 1; min-height: 0; overflow-y: auto; }
 .compare-controls { align-items: flex-end; flex-wrap: wrap; }
 .compare-controls .primary {
   background: var(--accent); color: #fff; border: none; border-radius: 8px;

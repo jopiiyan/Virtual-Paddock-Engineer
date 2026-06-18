@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { streamChat } from './api'
+import Dropdown from './Dropdown'
 
 export default function Chat({ races, ingested }) {
   const [gp, setGp] = useState('')
@@ -29,6 +30,9 @@ export default function Chat({ races, ingested }) {
     const q = input.trim()
     if (!q || streaming) return
 
+    // Prior turns become lightweight memory (sent before adding this message).
+    const history = messages.slice(-6).map((m) => ({ role: m.role, content: m.text }))
+
     setMessages((m) => [...m, { role: 'user', text: q }])
     setInput('')
     setStreaming(true)
@@ -39,7 +43,7 @@ export default function Chat({ races, ingested }) {
     let acc = '', srcs = [], drv = null
     try {
       await streamChat(
-        { message: q, grand_prix: gp || null, session_type: 'R' },
+        { message: q, grand_prix: gp || null, session_type: 'R', history },
         {
           onSources: (p) => { srcs = p.sources; drv = p.driver; setSources(p.sources); setDriver(p.driver) },
           onToken: (t) => { acc += t; setAnswer(acc) },
@@ -58,11 +62,8 @@ export default function Chat({ races, ingested }) {
       <div className="controls">
         <label>
           Grand Prix
-          <select value={gp} onChange={(e) => setGp(e.target.value)}>
-            {races.map((r) => (
-              <option key={r.round} value={r.location}>{r.name}</option>
-            ))}
-          </select>
+          <Dropdown className="wide" ariaLabel="Grand Prix" value={gp} onChange={setGp}
+            options={races.map((r) => ({ value: r.location, label: r.name }))} />
         </label>
         {!isIngested && gp && (
           <span className="warn">No ingested data for this race — chat will say so.</span>

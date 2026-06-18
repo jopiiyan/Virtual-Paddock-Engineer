@@ -1,4 +1,4 @@
-"""Phase 3 — FastAPI backend over the Phase 2 RAG chain.
+"""FastAPI backend over the RAG chain.
 
 Endpoints
   GET  /api/health   — liveness.
@@ -6,7 +6,7 @@ Endpoints
   POST /api/chat      — non-streaming: {answer, driver, sources}.
   POST /api/chat/stream — SSE: a `sources` event, then `token` events, then `done`.
 
-Driver is auto-detected from the question text (Hamilton → HAM); grand_prix and
+Driver is auto-detected from the question text (Hamilton -> HAM); grand_prix and
 session_type come from explicit dropdowns. We retrieve docs separately (not via
 the StrOutputParser chain) so the retrieved stints can be returned as "receipts".
 
@@ -19,19 +19,33 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
-from backend.chain import PROMPT, RETRIEVAL_K, format_docs
+from backend.chain import GROUNDING_INSTRUCTION, RETRIEVAL_K, format_docs
 from backend.drivers import detect_driver, load_alias_map
 from backend.telemetry import compare_telemetry, get_schedule
 from backend.vectorstore import get_vector_store
+
+# How many of the most recent turns to feed back as conversational memory.
+HISTORY_TURNS = 6
+
+# History-aware prompt: same grounding rules, plus prior turns so follow-ups
+# ("what about his second stint?") resolve. History is for phrasing/context only
+# — answers must still be grounded in the retrieved Context.
+CHAT_PROMPT = ChatPromptTemplate.from_template(
+    GROUNDING_INSTRUCTION + "\n\n"
+    "Context:\n{context}\n\n"
+    "Conversation so far (earlier turns, for resolving follow-ups):\n{history}\n\n"
+    "Question: {question}"
+)
 
 # Build once at startup — these are reused across every request.
 VECTOR_STORE = get_vector_store()
 LLM = ChatOllama(model="llama3.2", temperature=0)
 ALIAS_MAP = load_alias_map()
-ANSWER_CHAIN = PROMPT | LLM | StrOutputParser()
+ANSWER_CHAIN = CHAT_PROMPT | LLM | StrOutputParser()
 
 # Allow any localhost/127.0.0.1 port in dev — Vite hops to 5174/5175 etc. when a
 # port is taken, so pinning exact origins is brittle. Tighten this for production.
@@ -44,18 +58,43 @@ app.add_middleware(
 )
 
 
+class Turn(BaseModel):
+    role: str   # "user" | "assistant"
+    content: str
+
+
 class ChatRequest(BaseModel):
     message: str
     driver: str | None = None        # explicit override; else auto-detected from text
     grand_prix: str | None = None    # dropdown filter
     session_type: str | None = None  # dropdown filter (needs Part 2 re-ingest to take effect)
+    history: list[Turn] = []         # recent prior turns (lightweight memory)
 
 
 def resolve_driver(req: ChatRequest) -> str | None:
-    """Explicit driver wins; otherwise detect one from the question text."""
+    """Explicit driver wins; else detect from the current message; else fall back
+    to the most recently mentioned driver in the conversation (so "what about his
+    second stint?" keeps filtering on the right driver)."""
     if req.driver:
         return req.driver.upper()
-    return detect_driver(req.message, ALIAS_MAP)
+    found = detect_driver(req.message, ALIAS_MAP)
+    if found:
+        return found
+    for turn in reversed(req.history):           # most recent first
+        if turn.role == "user":
+            prev = detect_driver(turn.content, ALIAS_MAP)
+            if prev:
+                return prev
+    return None
+
+
+def format_history(history: list[Turn]) -> str:
+    """Render the last few turns as plain text for the prompt."""
+    recent = history[-HISTORY_TURNS:]
+    if not recent:
+        return "(no earlier conversation)"
+    label = {"user": "User", "assistant": "Engineer"}
+    return "\n".join(f"{label.get(t.role, t.role)}: {t.content}" for t in recent)
 
 
 def build_filter(driver: str | None, req: ChatRequest) -> dict:
@@ -99,7 +138,11 @@ def filters() -> dict:
 def chat(req: ChatRequest) -> dict:
     driver = resolve_driver(req)
     docs = retrieve(req.message, build_filter(driver, req))
-    answer = ANSWER_CHAIN.invoke({"context": format_docs(docs), "question": req.message})
+    answer = ANSWER_CHAIN.invoke({
+        "context": format_docs(docs),
+        "history": format_history(req.history),
+        "question": req.message,
+    })
     return {"answer": answer, "driver": driver, "sources": docs_to_sources(docs)}
 
 
@@ -107,12 +150,16 @@ def chat(req: ChatRequest) -> dict:
 async def chat_stream(req: ChatRequest):
     driver = resolve_driver(req)
     docs = retrieve(req.message, build_filter(driver, req))
-    context = format_docs(docs)
+    payload = {
+        "context": format_docs(docs),
+        "history": format_history(req.history),
+        "question": req.message,
+    }
 
     async def event_stream():
         # Receipts first, so the UI can render sources before tokens arrive.
         yield _sse({"type": "sources", "driver": driver, "sources": docs_to_sources(docs)})
-        async for tok in ANSWER_CHAIN.astream({"context": context, "question": req.message}):
+        async for tok in ANSWER_CHAIN.astream(payload):
             yield _sse({"type": "token", "text": tok})
         yield _sse({"type": "done"})
 
