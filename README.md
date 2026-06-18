@@ -187,11 +187,11 @@ This is currently a **semantic-retrieval RAG** system. That works well for *desc
 
 Planned improvements:
 
-**Query router + text-to-SQL** — send analytical questions to a SQL path that queries the structured stint data directly, instead of forcing them through vector search.
-**Evaluation harness** — a golden Q&A set with retrieval/answer metrics (faithfulness, context relevance, correctness) so changes can be validated rather than guessed at.
-**Self-query retrieval** — derive metadata filters from natural language automatically (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
-**Hybrid search** — combine keyword (BM25) and vector retrieval for exact tokens like driver codes and circuit names.
-**Conversational memory** — history-aware retrieval for follow-up questions.
+- **Query router + text-to-SQL** — send analytical questions to a SQL path that queries the structured stint data directly, instead of forcing them through vector search.
+- **Evaluation harness** — a golden Q&A set with retrieval/answer metrics (faithfulness, context relevance, correctness) so changes can be validated rather than guessed at.
+- **Self-query retrieval** — derive metadata filters from natural language automatically (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
+- **Hybrid search** — combine keyword (BM25) and vector retrieval for exact tokens like driver codes and circuit names.
+- **Conversational memory** — history-aware retrieval for follow-up questions.
 
 ---
 
