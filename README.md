@@ -177,8 +177,6 @@ Open the dev server URL (e.g. `http://localhost:5173`), pick two drivers, and st
 └── README.md
 ```
 
-> _Adjust the paths above to match your actual layout._
-
 ## Acknowledgments
 
 - [FastF1](https://github.com/theOehrly/Fast-F1) for the Formula 1 telemetry data.
