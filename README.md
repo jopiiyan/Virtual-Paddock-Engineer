@@ -179,22 +179,6 @@ Open the dev server URL (e.g. `http://localhost:5173`), pick two drivers, and st
 
 > _Adjust the paths above to match your actual layout._
 
----
-
-## Limitations & Roadmap
-
-This is currently a **semantic-retrieval RAG** system. That works well for *descriptive* questions ("tell me about driver X's stint"), but it has a known limitation worth being explicit about: it can't reliably answer *analytical* questions ("which driver had the worst degradation?"), because those require ranking or aggregating across **all** records, not retrieving the most semantically similar few.
-
-Planned improvements:
-
-- **Query router + text-to-SQL** — send analytical questions to a SQL path that queries the structured stint data directly, instead of forcing them through vector search.
-- **Evaluation harness** — a golden Q&A set with retrieval/answer metrics (faithfulness, context relevance, correctness) so changes can be validated rather than guessed at.
-- **Self-query retrieval** — derive metadata filters from natural language automatically (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
-- **Hybrid search** — combine keyword (BM25) and vector retrieval for exact tokens like driver codes and circuit names.
-- **Conversational memory** — history-aware retrieval for follow-up questions.
-
----
-
 ## Acknowledgments
 
 - [FastF1](https://github.com/theOehrly/Fast-F1) for the Formula 1 telemetry data.
