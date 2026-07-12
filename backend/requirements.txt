@@ -1,18 +1,37 @@
-# Phase 1 — ingestion
-fastf1
-numpy
+# Pinned for reproducibility — the whole eval must rerun cold on a fresh clone.
+# Versions are the ones the reported EVALUATION.md numbers were produced with.
 
-# LangChain + Ollama + Supabase
-langchain
-langchain-core
-langchain-community
-langchain-ollama
-supabase
+# --- Ingestion (FastF1 -> documents) ---
+fastf1==3.8.3
+numpy==2.2.6
+pandas==2.3.3
 
-# Phase 3 — API (installed now so the backend env is complete)
-fastapi
-uvicorn[standard]
-pydantic
+# --- Core RAG: LangChain + Ollama + Supabase ---
+# NB: langchain must stay on the 0.3.x line — ragas 0.2.x is incompatible with
+# langchain 1.x, and langchain-community's SupabaseVectorStore broke against newer
+# supabase-py (we call the match_documents RPC directly in vectorstore.dense_search).
+langchain==0.3.30
+langchain-core==0.3.86
+langchain-community==0.3.31
+langchain-ollama==0.2.3
+supabase==2.31.0
 
-# Local config
-python-dotenv
+# --- API ---
+fastapi==0.137.1
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+python-dotenv==1.2.2
+
+# --- Retrieval features (Phases 4-6) ---
+rank-bm25==0.2.2                 # BM25 lexical leg (hybrid)
+sentence-transformers==5.6.0     # cross-encoder reranker (BAAI/bge-reranker-base)
+PyYAML==6.0.3                    # pipeline configs
+
+# --- Evaluation harness ---
+ragas==0.2.6                     # RAGAS answer-quality metrics
+langchain-google-genai==2.1.12   # Gemini judge for RAGAS
+datasets==5.0.0                  # ragas dataset plumbing
+matplotlib==3.10.9               # tradeoff plot
+
+# --- Tests ---
+pytest==9.1.1

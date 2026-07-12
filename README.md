@@ -4,6 +4,15 @@ A full-stack Formula 1 analytics application that lets you **compare two drivers
 
 The entire LLM and embedding stack runs **locally via Ollama** — no external API keys, no per-token cost.
 
+> **Advanced retrieval & evaluation.** On top of the app, this repo builds a measured
+> retrieval-evaluation harness (classical IR metrics + RAGAS) over a 40-question
+> hand-verified golden set, freezes a naive-RAG baseline, then ablates **hybrid search
+> (BM25 + RRF)**, **multi-query expansion**, and **cross-encoder reranking** against it —
+> with the latency cost of each. **Every number is reproducible** (`python -m eval.run_eval …`).
+> The honest headline: on this small, clean corpus the naive dense baseline is hard to beat,
+> and only hybrid clearly earns its place — see **[EVALUATION.md](EVALUATION.md)** for the
+> ablation table, **[docs/DECISIONS.md](docs/DECISIONS.md)** for why each component was
+> chosen, and **[docs/AUDIT.md](docs/AUDIT.md)** for the starting-state audit.
 
 ---
 
@@ -148,7 +157,7 @@ pip install -r requirements.txt
 python -m backend.ingestion
 
 # Start the API
-uvicorn backend.main:app --reload --port 8000
+uvicorn backend.api:app --reload --port 8000
 ```
 
 ### 5. Run the frontend
@@ -163,35 +172,90 @@ Open the dev server URL (e.g. `http://localhost:5173`), pick two drivers, and st
 
 ---
 
+## Reproduce the evaluation
+
+Every number in [EVALUATION.md](EVALUATION.md) is produced by a script — nothing is estimated.
+
+```bash
+cd backend && pip install -r requirements.txt && cd ..
+
+python eval/validate_golden.py                 # golden-set integrity check
+python -m pytest backend/tests                 # metric / RRF / pipeline unit tests
+
+# Freeze the baseline, then run each ablation config (RAGAS off; add generation for RAGAS):
+python -m eval.run_eval --config configs/baseline.yaml     --out eval/results/baseline.json     --no-ragas
+python -m eval.run_eval --config configs/bm25_only.yaml    --out eval/results/bm25_only.json    --no-generation
+python -m eval.run_eval --config configs/hybrid.yaml       --out eval/results/hybrid.json       --no-generation
+python -m eval.run_eval --config configs/hybrid_mq.yaml    --out eval/results/hybrid_mq.json    --no-generation
+python -m eval.run_eval --config configs/hybrid_rerank.yaml --out eval/results/hybrid_rerank.json --no-generation
+python -m eval.run_eval --config configs/full.yaml         --out eval/results/full.json         --no-ragas
+
+python scripts/plot_tradeoff.py                # regenerate docs/tradeoff.png
+```
+
+Retrieval metrics (recall@k, MRR, nDCG) need only Ollama + Supabase and are deterministic.
+The **RAGAS** answer-quality columns additionally need a `GEMINI_API_KEY` with judge quota
+(see [EVALUATION.md](EVALUATION.md)); the harness records them as pending otherwise.
+
+---
+
 ## Project Structure
 
 ```
 .
 ├── backend/
-│   ├── ingestion.py      # FastF1 → LangChain Documents → Supabase
-│   ├── vectorstore.py    # Shared Supabase + embeddings wiring
-│   ├── chain.py          # LCEL RAG chain (standalone-runnable)
-│   ├── main.py           # FastAPI app (/api/chat, SSE streaming)
-│   └── requirements.txt
-├── frontend/             # React dashboard + chat UI
-└── README.md
+│   ├── ingestion.py         # FastF1 → LangChain Documents → Supabase (stable chunk_ids)
+│   ├── vectorstore.py       # Supabase client + dense_search (direct match_documents RPC)
+│   ├── chain.py             # LCEL RAG chain (standalone-runnable)
+│   ├── drivers.py           # "Hamilton" → HAM detection
+│   ├── telemetry.py         # FastF1 telemetry for the Compare dashboard (no RAG)
+│   ├── api.py               # FastAPI app (/api/chat, SSE streaming)
+│   ├── retrieval/           # config-driven pipeline: dense · bm25 · fusion(RRF) · multi_query · rerank
+│   ├── tests/               # pytest: metrics, RRF, tokenization, pipeline guardrails
+│   ├── requirements.txt     # pinned runtime deps
+│   └── requirements-test.txt# lean deps for CI
+├── configs/                 # baseline.yaml, hybrid.yaml, … full.yaml (one per ablation row)
+├── eval/                    # golden_set.jsonl, metrics.py, run_eval.py, ragas_eval.py, results/
+├── scripts/                 # inspect_corpus, backfill_chunk_ids, generate_candidates, plot_tradeoff
+├── docs/                    # AUDIT.md, DECISIONS.md, tradeoff.png
+├── EVALUATION.md            # ← the ablation table + failure analysis + threats to validity
+├── frontend/                # React dashboard + chat UI
+└── .github/workflows/ci.yml # pytest on push
 ```
-
-> _Adjust the paths above to match your actual layout._
 
 ---
 
-## Limitations & Roadmap
+## What's been built and measured
 
-This is currently a **semantic-retrieval RAG** system. That works well for *descriptive* questions ("tell me about driver X's stint"), but it has a known limitation worth being explicit about: it can't reliably answer *analytical* questions ("which driver had the worst degradation?"), because those require ranking or aggregating across **all** records, not retrieving the most semantically similar few.
+Built, ablated against the frozen baseline, and reported in [EVALUATION.md](EVALUATION.md):
 
-Planned improvements:
+- [x] **Evaluation harness** — 40-question hand-verified golden set + classical IR metrics
+  (recall@k, MRR, nDCG) and a RAGAS integration (Gemini judge, independent of the generator).
+- [x] **Hybrid search (BM25 + RRF)** — closes the exact-term gap (compound/code queries) and
+  lifts recall@10 for near-zero cost. **The one component that clearly earns its place.**
+- [x] **Multi-query expansion** (paraphrase + decomposition) — helps paraphrase queries but
+  regresses comparatives at ~15× latency; kept as a flag, **off by default**.
+- [x] **Cross-encoder reranking** (`bge-reranker-base`) with a candidate-set sweep — a *negative*
+  result on this corpus (out-of-domain reranker hurts exact-term); reported honestly.
+- [x] **Conversational memory** — history-aware follow-ups (in the API).
 
-- [ ] **Query router + text-to-SQL** — send analytical questions to a SQL path that queries the structured stint data directly, instead of forcing them through vector search.
-- [ ] **Evaluation harness** — a golden Q&A set with retrieval/answer metrics (faithfulness, context relevance, correctness) so changes can be validated rather than guessed at.
-- [ ] **Self-query retrieval** — derive metadata filters from natural language automatically (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
-- [ ] **Hybrid search** — combine keyword (BM25) and vector retrieval for exact tokens like driver codes and circuit names.
-- [ ] **Conversational memory** — history-aware retrieval for follow-up questions.
+The honest conclusion (with numbers): on this small, semantically-clean corpus the naive dense
+baseline is hard to beat, and only hybrid is worth shipping. See EVALUATION.md for the full
+table, per-type breakdown, latency/accuracy plot, and threats to validity.
+
+## Roadmap — what I'd build next
+
+The residual failures are *analytical/structured* queries that semantic retrieval is the wrong
+tool for, so the next steps are:
+
+- [ ] **Query router + text-to-SQL** — send analytical/aggregation questions ("who had the worst
+  degradation?", "which compound?") to a SQL path over the structured stint data. No amount of
+  reranking fixes these; this is the honest next build.
+- [ ] **Self-query retrieval** — derive metadata filters from natural language automatically
+  (e.g. "Hamilton's hard-tyre stints" → `{driver: HAM, compound: HARD}`).
+- [ ] **Domain-fit reranker** — fine-tune the cross-encoder on F1 relevance, or a metadata-aware
+  signal that knows a "which compound" question wants a stint doc, not a result doc.
+- [ ] **Larger corpus** — extend the eval beyond one race; several ablation calls would likely flip.
 
 ---
 

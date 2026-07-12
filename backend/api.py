@@ -17,6 +17,7 @@ import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
@@ -25,7 +26,7 @@ from pydantic import BaseModel
 from backend.chain import GROUNDING_INSTRUCTION, RETRIEVAL_K, format_docs
 from backend.drivers import detect_driver, load_alias_map
 from backend.telemetry import compare_telemetry, get_schedule
-from backend.vectorstore import get_vector_store
+from backend.vectorstore import dense_search, get_client
 
 # How many of the most recent turns to feed back as conversational memory.
 HISTORY_TURNS = 6
@@ -41,7 +42,6 @@ CHAT_PROMPT = ChatPromptTemplate.from_template(
 )
 
 # Build once at startup — these are reused across every request.
-VECTOR_STORE = get_vector_store()
 LLM = ChatOllama(model="llama3.2", temperature=0)
 ALIAS_MAP = load_alias_map()
 ANSWER_CHAIN = CHAT_PROMPT | LLM | StrOutputParser()
@@ -109,8 +109,9 @@ def build_filter(driver: str | None, req: ChatRequest) -> dict:
 
 
 def retrieve(message: str, flt: dict):
-    retriever = VECTOR_STORE.as_retriever(search_kwargs={"k": RETRIEVAL_K, "filter": flt})
-    return retriever.invoke(message)
+    # Direct pgvector RPC (stable across supabase-py versions); see vectorstore.dense_search.
+    rows = dense_search(message, k=RETRIEVAL_K, filter=flt)
+    return [Document(page_content=r["content"], metadata=r["metadata"]) for r in rows]
 
 
 def docs_to_sources(docs) -> list[dict]:
@@ -125,7 +126,7 @@ def health() -> dict:
 @app.get("/api/filters")
 def filters() -> dict:
     """Distinct filter values for the UI dropdowns, read from stored metadata."""
-    rows = VECTOR_STORE._client.table("documents").select("metadata").execute().data
+    rows = get_client().table("documents").select("metadata").execute().data
     grands_prix = sorted({r["metadata"].get("grand_prix") for r in rows if r.get("metadata")} - {None})
     sessions = sorted({r["metadata"].get("session_type") for r in rows if r.get("metadata")} - {None})
     # Driver dropdown comes from the alias map (code → a display name).

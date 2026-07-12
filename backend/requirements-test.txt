@@ -1,0 +1,11 @@
+# Lean dependency set for CI unit tests (backend/tests). The tests are network-free
+# (metrics, RRF fusion, tokenization, config, pipeline control-flow via monkeypatch), so
+# they don't need torch / ragas / Gemini / fastf1 — just enough to import the modules.
+langchain-core==0.3.86
+langchain-community==0.3.31
+langchain-ollama==0.2.3
+supabase==2.31.0
+rank-bm25==0.2.2
+numpy==2.2.6
+PyYAML==6.0.3
+pytest==9.1.1
