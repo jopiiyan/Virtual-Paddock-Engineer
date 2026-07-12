@@ -7,3 +7,5 @@ __pycache__/
 backend/f1_cache/
 .DS_Store
 .claude
+docs/AUDIT.md
+explanation.md
