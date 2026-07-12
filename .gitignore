@@ -9,3 +9,4 @@ backend/f1_cache/
 .claude
 docs/AUDIT.md
 explanation.md
+docs/DECISIONS.md
