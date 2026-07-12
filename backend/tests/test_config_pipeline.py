@@ -38,21 +38,35 @@ def _stub_leg(monkeypatch):
     return P
 
 
-def test_rerank_stage_still_gated(monkeypatch):
-    # Rerank isn't implemented until Phase 6 — it must refuse, not silently no-op (R4).
+def test_rerank_stage_runs(monkeypatch):
+    # Rerank is implemented (Phase 6): with a fake cross-encoder it should be invoked
+    # on the shortlist and record its stage timing — no model download needed.
     P = _stub_leg(monkeypatch)
+    called = {}
+
+    def fake_rerank(q, chunks, model):
+        called["model"] = model
+        return list(reversed(chunks))
+
+    monkeypatch.setattr(P, "rerank", fake_rerank)
     cfg = PipelineConfig()
     cfg.rerank.enabled = True
-    with pytest.raises(NotImplementedError):
-        P.retrieve("q", cfg)
+    res = P.retrieve("q", cfg)
+    assert called["model"] == cfg.rerank.model
+    assert "rerank_ms" in res.stage_ms
 
 
-def test_multi_query_stage_still_gated(monkeypatch):
+def test_multi_query_runs_and_fuses(monkeypatch):
+    # Multi-query is implemented (Phase 5): with a fake expander and stubbed legs it
+    # should retrieve per sub-query and fuse, with no network and no error.
     P = _stub_leg(monkeypatch)
+    monkeypatch.setattr(P, "_get_llm", lambda cfg: object())
+    monkeypatch.setattr(P, "expand_query", lambda q, n, mode, llm: [q, q + " variant"])
     cfg = PipelineConfig()
     cfg.multi_query.enabled = True
-    with pytest.raises(NotImplementedError):
-        P.retrieve("q", cfg)
+    res = P.retrieve("compare HAM and VER", cfg)
+    assert res.chunk_ids == ["x"]
+    assert "expand_ms" in res.stage_ms
 
 
 def test_two_legs_without_fusion_is_an_error(monkeypatch):

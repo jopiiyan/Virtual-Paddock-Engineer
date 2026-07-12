@@ -1,0 +1,38 @@
+# Hybrid + cross-encoder rerank. Wide recall-oriented first stage (dense+BM25+RRF),
+# then BAAI/bge-reranker-base re-sorts the top-20 shortlist for precision. Expected to
+# recover the MRR/precision that plain hybrid gave up (docs/DECISIONS.md D9).
+name: hybrid_rerank
+
+retrieval:
+  corpus_filter:
+    grand_prix: Silverstone
+  dense:
+    enabled: true
+    top_k: 20
+  bm25:
+    enabled: true
+    top_k: 20
+  fusion:
+    method: rrf
+    rrf_k: 60
+  multi_query:
+    enabled: false
+    n_queries: 3
+    mode: decompose
+  rerank:
+    enabled: true
+    model: BAAI/bge-reranker-base
+    candidates: 20
+    top_n: 5
+
+generation:
+  enabled: false
+  model: llama3.2
+  temperature: 0.0
+  context_top_n: 5
+
+eval:
+  golden_set: eval/golden_set.jsonl
+  judge_model: gemini-2.5-flash
+  ragas: false
+  k_values: [3, 5, 10]
