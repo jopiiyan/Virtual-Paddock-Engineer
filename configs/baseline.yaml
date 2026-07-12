@@ -40,6 +40,6 @@ generation:
 
 eval:
   golden_set: eval/golden_set.jsonl
-  judge_model: gemini-1.5-flash
+  judge_model: gemini-2.0-flash
   ragas: true                 # scored only if a Gemini key is present, else recorded as skipped
   k_values: [3, 5, 10]

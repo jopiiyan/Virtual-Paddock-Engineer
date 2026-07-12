@@ -28,13 +28,39 @@ def test_config_hash_is_stable_and_sensitive():
     assert a.config_hash() != b.config_hash()          # sensitive to any change
 
 
-def test_bm25_stage_refuses_until_implemented():
-    # dense off + bm25 on reaches the bm25 gate without any network call.
+def _stub_leg(monkeypatch):
+    """Replace both retrieval legs with a fixed in-memory result, so pipeline
+    control-flow can be tested without Supabase / Ollama."""
+    import backend.retrieval.pipeline as P
+    chunks = [P.RetrievedChunk("x", "content", {"chunk_id": "x"}, 1.0)]
+    monkeypatch.setattr(P, "_dense", lambda q, c, f: list(chunks))
+    monkeypatch.setattr(P, "_bm25", lambda q, c, f: list(chunks))
+    return P
+
+
+def test_rerank_stage_still_gated(monkeypatch):
+    # Rerank isn't implemented until Phase 6 — it must refuse, not silently no-op (R4).
+    P = _stub_leg(monkeypatch)
     cfg = PipelineConfig()
-    cfg.dense.enabled = False
-    cfg.bm25.enabled = True
+    cfg.rerank.enabled = True
     with pytest.raises(NotImplementedError):
-        retrieve("any question", cfg)
+        P.retrieve("q", cfg)
+
+
+def test_multi_query_stage_still_gated(monkeypatch):
+    P = _stub_leg(monkeypatch)
+    cfg = PipelineConfig()
+    cfg.multi_query.enabled = True
+    with pytest.raises(NotImplementedError):
+        P.retrieve("q", cfg)
+
+
+def test_two_legs_without_fusion_is_an_error(monkeypatch):
+    P = _stub_leg(monkeypatch)
+    cfg = PipelineConfig()
+    cfg.bm25.enabled = True          # dense + bm25 both on, fusion still 'none'
+    with pytest.raises(ValueError):
+        P.retrieve("q", cfg)
 
 
 def test_no_leg_enabled_is_an_error():

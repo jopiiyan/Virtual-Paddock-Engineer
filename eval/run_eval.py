@@ -1,7 +1,10 @@
 """Run the evaluation harness for one pipeline config and emit a results row.
 
-    python eval/run_eval.py --config configs/baseline.yaml
-    python eval/run_eval.py --config configs/baseline.yaml --out eval/results/baseline.json
+Run as a module from the project root so `backend` and `eval` both import:
+
+    python -m eval.run_eval --config configs/baseline.yaml
+    python -m eval.run_eval --config configs/baseline.yaml --out eval/results/baseline.json
+    python -m eval.run_eval --config configs/baseline.yaml --no-ragas   # judge quota unavailable
 
 Takes a pipeline config, runs every golden question through backend.retrieval.retrieve,
 and computes:
@@ -79,9 +82,17 @@ def main() -> None:
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", default=None, help="also write a full standalone summary here")
     ap.add_argument("--limit", type=int, default=None, help="debug: only first N questions")
+    ap.add_argument("--no-ragas", action="store_true",
+                    help="skip RAGAS even if the config enables it (e.g. judge quota unavailable)")
+    ap.add_argument("--no-generation", action="store_true",
+                    help="retrieval metrics only; skip LLM generation, abstention and RAGAS")
     args = ap.parse_args()
 
     config = load_config(args.config)
+    if args.no_generation:
+        config.generation.enabled = False
+    if args.no_ragas:
+        config.eval.ragas = False
     golden = load_golden(config.eval.golden_set)
     if args.limit:
         golden = golden[: args.limit]
