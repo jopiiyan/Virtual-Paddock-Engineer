@@ -19,6 +19,7 @@ from backend.retrieval.bm25 import bm25_search
 from backend.retrieval.config import PipelineConfig
 from backend.retrieval.fusion import reciprocal_rank_fusion
 from backend.retrieval.multi_query import expand_query
+from backend.retrieval.rerank import rerank
 from backend.vectorstore import dense_search
 
 # The query-expansion LLM, built once and reused across a run.
@@ -84,54 +85,70 @@ def _bm25(query: str, config: PipelineConfig, flt: dict) -> list[RetrievedChunk]
     return _to_chunks(bm25_search(query, k=config.bm25.top_k, filter=flt), "score")
 
 
-def retrieve(query: str, config: PipelineConfig, extra_filter: dict | None = None) -> RetrieveResult:
-    stage_ms: dict[str, float] = {}
-    flt = _merge_filter(config, extra_filter)
+def _rrf_merge(legs: list[list[RetrievedChunk]], k: int) -> list[RetrievedChunk]:
+    """Fuse several ranked chunk-lists into one by RRF, re-attaching content/metadata."""
+    lookup: dict[str, RetrievedChunk] = {}
+    for leg in legs:
+        for c in leg:
+            lookup.setdefault(c.chunk_id, c)
+    fused = reciprocal_rank_fusion([[c.chunk_id for c in leg] for leg in legs], k=k)
+    return [RetrievedChunk(cid, lookup[cid].content, lookup[cid].metadata, score)
+            for cid, score in fused]
 
-    # --- Stage 1: candidate generation (dense and/or BM25) ---
+
+def _candidate_stage(query: str, config: PipelineConfig, flt: dict,
+                     stage_ms: dict[str, float]) -> list[RetrievedChunk]:
+    """One query -> dense and/or BM25 legs -> (optional) RRF fusion. Timings accumulate
+    into stage_ms so multi-query (which calls this per sub-query) reports summed cost."""
     legs: list[list[RetrievedChunk]] = []
 
     if config.dense.enabled:
         t = time.perf_counter()
-        dense = _dense(query, config, flt)
-        stage_ms["dense_ms"] = (time.perf_counter() - t) * 1000
-        legs.append(dense)
+        legs.append(_dense(query, config, flt))
+        stage_ms["dense_ms"] = stage_ms.get("dense_ms", 0.0) + (time.perf_counter() - t) * 1000
 
     if config.bm25.enabled:
         t = time.perf_counter()
-        bm = _bm25(query, config, flt)
-        stage_ms["bm25_ms"] = (time.perf_counter() - t) * 1000
-        legs.append(bm)
+        legs.append(_bm25(query, config, flt))
+        stage_ms["bm25_ms"] = stage_ms.get("bm25_ms", 0.0) + (time.perf_counter() - t) * 1000
 
     if not legs:
         raise ValueError("No retrieval leg is enabled — at least `dense` must be on.")
 
-    # --- Stage 2: fusion ---
     if config.fusion.method == "rrf":
         t = time.perf_counter()
-        # Fuse the legs' rank lists, then re-attach content/metadata for each id.
-        lookup: dict[str, RetrievedChunk] = {}
-        for leg in legs:
-            for c in leg:
-                lookup.setdefault(c.chunk_id, c)
-        fused = reciprocal_rank_fusion([[c.chunk_id for c in leg] for leg in legs],
-                                       k=config.fusion.rrf_k)
-        ranked = [RetrievedChunk(cid, lookup[cid].content, lookup[cid].metadata, score)
-                  for cid, score in fused]
-        stage_ms["fusion_ms"] = (time.perf_counter() - t) * 1000
-    elif config.fusion.method in ("none", None):
+        ranked = _rrf_merge(legs, config.fusion.rrf_k)
+        stage_ms["fusion_ms"] = stage_ms.get("fusion_ms", 0.0) + (time.perf_counter() - t) * 1000
+        return ranked
+    if config.fusion.method in ("none", None):
         if len(legs) > 1:
             raise ValueError("Multiple retrieval legs are enabled but fusion.method is 'none'.")
-        ranked = legs[0]
-    else:
-        raise ValueError(f"Unknown fusion method: {config.fusion.method}")
+        return legs[0]
+    raise ValueError(f"Unknown fusion method: {config.fusion.method}")
 
-    # --- Stage 3: multi-query expansion ---
+
+def retrieve(query: str, config: PipelineConfig, extra_filter: dict | None = None) -> RetrieveResult:
+    stage_ms: dict[str, float] = {}
+    flt = _merge_filter(config, extra_filter)
+
+    # --- Stages 1-2: candidate generation + fusion, optionally over expanded queries ---
     if config.multi_query.enabled:
-        raise NotImplementedError("Multi-query expansion lands in Phase 5.")
+        t = time.perf_counter()
+        queries = expand_query(query, config.multi_query.n_queries,
+                               config.multi_query.mode, _get_llm(config))
+        stage_ms["expand_ms"] = (time.perf_counter() - t) * 1000
+        per_query = [_candidate_stage(q, config, flt, stage_ms) for q in queries]
+        t = time.perf_counter()
+        ranked = _rrf_merge(per_query, config.fusion.rrf_k)
+        stage_ms["mq_fusion_ms"] = (time.perf_counter() - t) * 1000
+    else:
+        ranked = _candidate_stage(query, config, flt, stage_ms)
 
-    # --- Stage 4: cross-encoder rerank ---
+    # --- Stage 3: cross-encoder rerank (precision second stage) ---
     if config.rerank.enabled:
-        raise NotImplementedError("Cross-encoder rerank lands in Phase 6.")
+        t = time.perf_counter()
+        shortlist = ranked[: config.rerank.candidates]
+        ranked = rerank(query, shortlist, config.rerank.model)
+        stage_ms["rerank_ms"] = (time.perf_counter() - t) * 1000
 
     return RetrieveResult(chunks=ranked, stage_ms=stage_ms)
