@@ -1,0 +1,39 @@
+# Hybrid + multi-query DECOMPOSITION. Splits multi-entity questions into per-entity
+# sub-queries (llama3.2), retrieves hybrid for each, fuses all with RRF. Targets the
+# comparative failure mode (c_03/c_08/c_10/p_05) where one entity starves the other.
+# See docs/DECISIONS.md D8. Off by default in production if latency isn't justified.
+name: hybrid_mq
+
+retrieval:
+  corpus_filter:
+    grand_prix: Silverstone
+  dense:
+    enabled: true
+    top_k: 20
+  bm25:
+    enabled: true
+    top_k: 20
+  fusion:
+    method: rrf
+    rrf_k: 60
+  multi_query:
+    enabled: true
+    n_queries: 3
+    mode: decompose
+  rerank:
+    enabled: false
+    model: BAAI/bge-reranker-base
+    candidates: 20
+    top_n: 5
+
+generation:
+  enabled: false
+  model: llama3.2
+  temperature: 0.0
+  context_top_n: 5
+
+eval:
+  golden_set: eval/golden_set.jsonl
+  judge_model: gemini-2.5-flash
+  ragas: false
+  k_values: [3, 5, 10]
