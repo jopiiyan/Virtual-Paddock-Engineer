@@ -18,7 +18,19 @@ from dataclasses import dataclass, field
 from backend.retrieval.bm25 import bm25_search
 from backend.retrieval.config import PipelineConfig
 from backend.retrieval.fusion import reciprocal_rank_fusion
+from backend.retrieval.multi_query import expand_query
 from backend.vectorstore import dense_search
+
+# The query-expansion LLM, built once and reused across a run.
+_LLM = None
+
+
+def _get_llm(config: PipelineConfig):
+    global _LLM
+    if _LLM is None:
+        from langchain_ollama import ChatOllama
+        _LLM = ChatOllama(model=config.generation.model, temperature=0)
+    return _LLM
 
 
 @dataclass
