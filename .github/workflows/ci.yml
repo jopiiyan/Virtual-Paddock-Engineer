@@ -1,0 +1,25 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install test dependencies
+        # Lean set — the unit tests are network-free and don't need torch/ragas/fastf1.
+        run: pip install -r backend/requirements-test.txt
+
+      - name: Run unit tests
+        # Deterministic gate: metric correctness, RRF fusion, tokenization, config,
+        # pipeline control-flow. No Ollama / Supabase / Gemini contacted.
+        run: python -m pytest backend/tests -q
