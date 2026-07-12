@@ -1,0 +1,1280 @@
+{
+  "name": "bm25_only",
+  "config_hash": "53e51866041d",
+  "timestamp": "2026-07-12T17:30:48.067591+00:00",
+  "n_questions": 40,
+  "retrieval_metrics": {
+    "recall@3": 0.6471,
+    "hit_rate@3": 0.6471,
+    "recall@5": 0.6618,
+    "hit_rate@5": 0.6765,
+    "recall@10": 0.7059,
+    "hit_rate@10": 0.7353,
+    "mrr": 0.5942,
+    "ndcg@10": 0.6142,
+    "n_answerable": 34
+  },
+  "per_type_recall@5": {
+    "factual": 0.75,
+    "comparative": 0.55,
+    "exact_term": 1.0,
+    "paraphrase": 0.375
+  },
+  "latency": {
+    "p50_ms": 0.3,
+    "p95_ms": 0.4,
+    "mean_ms": 24.6,
+    "per_stage_p50_ms": {
+      "bm25_ms": 0.3
+    }
+  },
+  "config": {
+    "name": "bm25_only",
+    "corpus_filter": {
+      "grand_prix": "Silverstone"
+    },
+    "dense": {
+      "enabled": false,
+      "top_k": 20
+    },
+    "bm25": {
+      "enabled": true,
+      "top_k": 20
+    },
+    "fusion": {
+      "method": "none",
+      "rrf_k": 60
+    },
+    "multi_query": {
+      "enabled": false,
+      "n_queries": 3,
+      "mode": "decompose"
+    },
+    "rerank": {
+      "enabled": false,
+      "model": "BAAI/bge-reranker-base",
+      "candidates": 20,
+      "top_n": 5
+    },
+    "generation": {
+      "enabled": false,
+      "model": "llama3.2",
+      "temperature": 0.0,
+      "context_top_n": 5
+    },
+    "eval": {
+      "golden_set": "eval/golden_set.jsonl",
+      "judge_model": "gemini-2.5-flash",
+      "ragas": false,
+      "k_values": [
+        3,
+        5,
+        10
+      ]
+    }
+  },
+  "details": [
+    {
+      "id": "f_01",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result"
+      ],
+      "latency_ms": 975.2
+    },
+    {
+      "id": "f_02",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "f_03",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HUL_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "f_04",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_RUS_stint3"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "f_05",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_VER_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "f_06",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_PIA_stint3"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "f_07",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "f_08",
+      "query_type": "factual",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "c_01",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_NOR_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_VER_result"
+      ],
+      "latency_ms": 0.4
+    },
+    {
+      "id": "c_02",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_VER_stint3"
+      ],
+      "latency_ms": 0.4
+    },
+    {
+      "id": "c_03",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_PIA_stint3"
+      ],
+      "latency_ms": 0.4
+    },
+    {
+      "id": "c_04",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_LEC_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "c_05",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "c_06",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_RUS_stint3"
+      ],
+      "latency_ms": 0.4
+    },
+    {
+      "id": "c_07",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_STR_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "c_08",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_LEC_stint3"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "c_09",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_PIA_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "c_10",
+      "query_type": "comparative",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_VER_stint3"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "e_01",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HUL_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_02",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_RUS_stint3"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_03",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_VER_stint3"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_04",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_BEA_stint3"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_05",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_06",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_07",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_RUS_stint3"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "e_08",
+      "query_type": "exact_term",
+      "retrieved": [
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_OCO_stint3"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "p_01",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "p_02",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "p_03",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_VER_stint3"
+      ],
+      "latency_ms": 0.5
+    },
+    {
+      "id": "p_04",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HUL_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "p_05",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_LEC_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "p_06",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_NOR_stint3"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "p_07",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_RUS_result"
+      ],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "p_08",
+      "query_type": "paraphrase",
+      "retrieved": [
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [
+        "2025_Silverstone_R_ALO_result"
+      ],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "n_01",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "n_02",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_TSU_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.3
+    },
+    {
+      "id": "n_03",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "n_04",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_VER_stint3",
+        "2025_Silverstone_R_GAS_stint3",
+        "2025_Silverstone_R_ALO_stint3",
+        "2025_Silverstone_R_LEC_stint3",
+        "2025_Silverstone_R_STR_stint4",
+        "2025_Silverstone_R_TSU_stint3",
+        "2025_Silverstone_R_ALB_stint3",
+        "2025_Silverstone_R_NOR_stint3",
+        "2025_Silverstone_R_HUL_stint3",
+        "2025_Silverstone_R_OCO_stint3",
+        "2025_Silverstone_R_HAM_stint3",
+        "2025_Silverstone_R_SAI_stint3",
+        "2025_Silverstone_R_RUS_stint3",
+        "2025_Silverstone_R_PIA_stint3",
+        "2025_Silverstone_R_BEA_stint3",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.4
+    },
+    {
+      "id": "n_05",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_COL_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.2
+    },
+    {
+      "id": "n_06",
+      "query_type": "unanswerable",
+      "retrieved": [
+        "2025_Silverstone_R_COL_result",
+        "2025_Silverstone_R_ANT_result",
+        "2025_Silverstone_R_NOR_result",
+        "2025_Silverstone_R_HAD_result",
+        "2025_Silverstone_R_BOR_result",
+        "2025_Silverstone_R_LAW_result",
+        "2025_Silverstone_R_TSU_result",
+        "2025_Silverstone_R_RUS_result",
+        "2025_Silverstone_R_SAI_result",
+        "2025_Silverstone_R_PIA_result",
+        "2025_Silverstone_R_HAM_result",
+        "2025_Silverstone_R_GAS_result",
+        "2025_Silverstone_R_ALB_result",
+        "2025_Silverstone_R_LEC_result",
+        "2025_Silverstone_R_HUL_result",
+        "2025_Silverstone_R_STR_result",
+        "2025_Silverstone_R_ALO_result",
+        "2025_Silverstone_R_VER_result",
+        "2025_Silverstone_R_BEA_result",
+        "2025_Silverstone_R_OCO_result"
+      ],
+      "relevant": [],
+      "latency_ms": 0.3
+    }
+  ]
+}

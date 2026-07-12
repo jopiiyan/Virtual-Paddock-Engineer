@@ -31,18 +31,27 @@ def _gemini_key() -> str:
     return key
 
 
-def evaluate_samples(samples: list[dict], judge_model: str = "gemini-1.5-flash") -> dict[str, float]:
+def evaluate_samples(
+    samples: list[dict],
+    judge_model: str = "gemini-2.5-flash",
+    max_workers: int = 1,
+) -> dict[str, float]:
     """Run RAGAS over samples and return mean scores per metric.
 
     Each sample: {"question", "answer", "contexts": [str, ...], "ground_truth"}.
     Unanswerable questions (empty ground_truth) should be excluded by the caller —
     context_recall/precision are undefined without a reference answer.
+
+    The judge runs on Gemini's free tier (single-digit requests/minute), so we throttle
+    hard: one worker, a long per-call timeout, and many retries with backoff. This
+    trades wall-clock time for completion rather than dropping rows to TimeoutError.
     """
     key = _gemini_key()
 
     from datasets import Dataset
     from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
     from ragas import evaluate
+    from ragas.run_config import RunConfig
     from ragas.llms import LangchainLLMWrapper
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.metrics import (
@@ -56,7 +65,7 @@ def evaluate_samples(samples: list[dict], judge_model: str = "gemini-1.5-flash")
         ChatGoogleGenerativeAI(model=judge_model, google_api_key=key, temperature=0)
     )
     judge_emb = LangchainEmbeddingsWrapper(
-        GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=key)
+        GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=key)
     )
 
     ds = Dataset.from_list([
@@ -70,12 +79,17 @@ def evaluate_samples(samples: list[dict], judge_model: str = "gemini-1.5-flash")
     ])
 
     metrics = [faithfulness, answer_relevancy, context_precision, context_recall]
-    result = evaluate(ds, metrics=metrics, llm=judge, embeddings=judge_emb)
+    # Respect the free-tier rate limit: serialize calls, tolerate long backoffs.
+    run_config = RunConfig(timeout=600, max_workers=max_workers, max_retries=15, max_wait=90)
+    result = evaluate(ds, metrics=metrics, llm=judge, embeddings=judge_emb, run_config=run_config)
 
-    # ragas returns a result mapping metric name -> score (mean over rows).
-    scores = {}
+    # Most reliable extraction across ragas 0.2.x: mean each metric column from the
+    # per-row dataframe (NaNs, e.g. a judge parse failure on one row, are ignored).
+    df = result.to_pandas()
+    scores: dict[str, float] = {}
     for m in RAGAS_METRICS:
-        val = result.get(m) if hasattr(result, "get") else None
-        if val is not None:
-            scores[m] = float(val)
+        if m in df.columns:
+            val = df[m].mean(skipna=True)
+            if val == val:   # not NaN
+                scores[m] = float(val)
     return scores

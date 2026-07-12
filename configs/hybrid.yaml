@@ -1,0 +1,38 @@
+# Hybrid: dense + BM25 legs fused with RRF (k=60). The core Phase-4 config. Expected
+# to beat both dense-only (baseline) and bm25-only, with the gain concentrated on
+# exact compound-token queries (e.g. e_05, "which drivers ran SOFT"). See DECISIONS D7.
+name: hybrid
+
+retrieval:
+  corpus_filter:
+    grand_prix: Silverstone
+  dense:
+    enabled: true
+    top_k: 20
+  bm25:
+    enabled: true
+    top_k: 20
+  fusion:
+    method: rrf
+    rrf_k: 60
+  multi_query:
+    enabled: false
+    n_queries: 3
+    mode: decompose
+  rerank:
+    enabled: false
+    model: BAAI/bge-reranker-base
+    candidates: 20
+    top_n: 5
+
+generation:
+  enabled: false        # retrieval-metrics ablation row
+  model: llama3.2
+  temperature: 0.0
+  context_top_n: 5
+
+eval:
+  golden_set: eval/golden_set.jsonl
+  judge_model: gemini-2.5-flash
+  ragas: false
+  k_values: [3, 5, 10]
