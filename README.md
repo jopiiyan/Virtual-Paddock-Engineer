@@ -2,7 +2,7 @@
 
 A full-stack Formula 1 analytics application that lets you **compare two drivers' race performance** through interactive telemetry charts and ask questions about it in **natural language**, answered by a Retrieval-Augmented Generation (RAG) pipeline grounded in real race data.
 
-The entire LLM and embedding stack runs **locally via Ollama** — no external API keys, no per-token cost.
+The **application runtime** — the LLM and embedding stack that serves the app — runs **locally via Ollama**, with no external API keys and no per-token cost. The **offline evaluation harness** is the one exception: its RAGAS answer-quality metrics are judged by the Google Gemini API (free tier), deliberately kept separate from the local generator model to avoid self-grading bias. See [EVALUATION.md](EVALUATION.md).
 
 > **Advanced retrieval & evaluation.** On top of the app, this repo builds a measured
 > retrieval-evaluation harness (classical IR metrics + RAGAS) over a 40-question
@@ -11,7 +11,8 @@ The entire LLM and embedding stack runs **locally via Ollama** — no external A
 > with the latency cost of each. **Every number is reproducible** (`python -m eval.run_eval …`).
 > The honest headline: on this small, clean corpus the naive dense baseline is hard to beat,
 > and only hybrid clearly earns its place — see **[EVALUATION.md](EVALUATION.md)** for the
-> ablation table.
+> ablation table, **[docs/DECISIONS.md](docs/DECISIONS.md)** for why each component was
+> chosen, and **[docs/AUDIT.md](docs/AUDIT.md)** for the starting-state audit.
 
 ---
 
@@ -28,7 +29,7 @@ The entire LLM and embedding stack runs **locally via Ollama** — no external A
 - **RAG chat assistant** — ask questions like _"How did Hamilton's hard tyres hold up?"_ and get answers grounded only in retrieved race data.
 - **Source "receipts"** — every answer shows the exact stint records it was based on, so nothing is taken on faith.
 - **Streaming responses** — answers stream token-by-token over Server-Sent Events (SSE).
-- **Fully local inference** — LLM (`llama3.2`) and embeddings (`nomic-embed-text`) run on Ollama; zero external API cost.
+- **Fully local inference at runtime** — the app's LLM (`llama3.2`) and embeddings (`nomic-embed-text`) run on Ollama; zero external API cost to serve queries. (Only the offline RAGAS evaluation uses an external judge — the Gemini API — never the live app.)
 
 ---
 
