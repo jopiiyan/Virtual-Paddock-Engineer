@@ -11,8 +11,7 @@ The entire LLM and embedding stack runs **locally via Ollama** — no external A
 > with the latency cost of each. **Every number is reproducible** (`python -m eval.run_eval …`).
 > The honest headline: on this small, clean corpus the naive dense baseline is hard to beat,
 > and only hybrid clearly earns its place — see **[EVALUATION.md](EVALUATION.md)** for the
-> ablation table, **[docs/DECISIONS.md](docs/DECISIONS.md)** for why each component was
-> chosen, and **[docs/AUDIT.md](docs/AUDIT.md)** for the starting-state audit.
+> ablation table.
 
 ---
 

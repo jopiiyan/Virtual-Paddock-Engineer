@@ -3,7 +3,8 @@
 **Corpus:** 2025 British Grand Prix (Silverstone), Race session — 35 chunks (15 stint +
 20 result docs), 20 drivers. **Golden set:** 40 hand-verified questions (34 answerable +
 6 unanswerable), `eval/golden_set.jsonl`. **Generator:** `llama3.2` (Ollama, temp 0).
-**Judge:** Gemini (independent) — RAGAS pending judge quota, see below.
+**Judge:** Gemini (`gemini-2.5-flash`, independent of the generator) — RAGAS measured for the
+generation-enabled configs; see the RAGAS section.
 
 Every number here is reproducible by running a script in this repo (CLAUDE.md R2). Nothing
 is estimated or illustrative.
@@ -32,19 +33,20 @@ stage on a single laptop (see *Threats to validity* — treat latency as order-o
 
 | Config | recall@5 | recall@10 | MRR | nDCG@10 | faithfulness | context_precision | context_recall | p50 (ms) | p95 (ms) |
 |---|---|---|---|---|---|---|---|---|---|
-| **Naive dense (baseline)** | **0.848** | 0.931 | **0.806** | **0.811** | ⏳ | ⏳ | ⏳ | 346 | 1118 |
+| **Naive dense (baseline)** | **0.848** | 0.931 | **0.806** | **0.811** | 0.654 | **0.513** | **0.794** | 346 | 1118 |
 | BM25 only | 0.662 | 0.706 | 0.594 | 0.614 | — | — | — | ~0.3 | ~0.4 |
-| Hybrid (RRF) | 0.824 | **0.971** | 0.725 | 0.777 | ⏳ | ⏳ | ⏳ | 160 | 314 |
-| Hybrid + multi-query (decompose) | 0.804 | 0.877 | 0.754 | 0.739 | ⏳ | ⏳ | ⏳ | 2445 | 4231 |
-| Hybrid + multi-query (paraphrase) | 0.794 | 0.912 | 0.680 | 0.728 | ⏳ | ⏳ | ⏳ | 7589 | 13790 |
-| Hybrid + rerank (k=10) | 0.789 | **0.971** | 0.694 | 0.749 | ⏳ | ⏳ | ⏳ | 331 | 476 |
-| Hybrid + rerank (k=20) | 0.760 | 0.828 | 0.655 | 0.677 | ⏳ | ⏳ | ⏳ | 497 | 972 |
-| Hybrid + rerank (k=50) | 0.774 | 0.814 | 0.636 | 0.662 | ⏳ | ⏳ | ⏳ | 598 | 1392 |
-| **Full (hybrid + MQ + rerank)** | 0.774 | 0.853 | 0.654 | 0.691 | ⏳ | ⏳ | ⏳ | 26244 | 36514 |
+| Hybrid (RRF) | 0.824 | **0.971** | 0.725 | 0.777 | 0.666 | 0.419 | 0.765 | 160 | 314 |
+| Hybrid + multi-query (decompose) | 0.804 | 0.877 | 0.754 | 0.739 | — | — | — | 2445 | 4231 |
+| Hybrid + multi-query (paraphrase) | 0.794 | 0.912 | 0.680 | 0.728 | — | — | — | 7589 | 13790 |
+| Hybrid + rerank (k=10) | 0.789 | **0.971** | 0.694 | 0.749 | **0.733** | 0.404 | 0.735 | 331 | 476 |
+| Hybrid + rerank (k=20) | 0.760 | 0.828 | 0.655 | 0.677 | 0.651 | 0.393 | 0.686 | 497 | 972 |
+| Hybrid + rerank (k=50) | 0.774 | 0.814 | 0.636 | 0.662 | — | — | — | 598 | 1392 |
+| **Full (hybrid + MQ + rerank)** | 0.774 | 0.853 | 0.654 | 0.691 | — | — | — | 26244 | 36514 |
 
-**Bold** = best in column. `⏳` = RAGAS pending Gemini judge quota (see below); `—` = not run
-(BM25-only / retrieval-only rows have no generation). Best MRR among *non-baseline* configs
-is multi-query decompose (0.754); best recall@10 is hybrid and hybrid+rerank@k=10 (0.971).
+**Bold** = best in column. `—` = not measured: BM25-only and the retrieval-only ablation
+configs have no generation, and multi-query / rerank k=50 / full were not judged (single-laptop
+generation-vs-reranker contention — see the RAGAS section). Best MRR among *non-baseline*
+configs is multi-query decompose (0.754); best recall@10 is hybrid and hybrid+rerank@k=10 (0.971).
 
 ## Per-question-type recall@5 — *where* each component acts
 
@@ -116,19 +118,42 @@ is a **query router with a text-to-SQL path** for aggregation/attribute queries,
 semantic pipeline for genuinely fuzzy questions. This is out of scope for this build by design
 (CLAUDE.md §5 P5).
 
-## RAGAS (answer quality) — pending judge quota
+## RAGAS (answer quality) — judged by Gemini
 
-The four RAGAS columns (`faithfulness`, `answer_relevancy`, `context_precision`,
-`context_recall`) are **not filled**, and per R2 they are not estimated. The judge (Gemini,
-deliberately independent of the `llama3.2` generator — see DECISIONS D2) is blocked by
-free-tier quota: `gemini-2.0-flash` returns `limit: 0` on its daily bucket, and
-`gemini-2.5-flash` throttles to ~5 req/min, under which RAGAS's ~300–400 judge calls per run
-time out. The harness fully supports RAGAS (`eval/ragas_eval.py`); once billing/quota is
-enabled, `python -m eval.run_eval --config configs/full.yaml --out eval/results/full.json`
-(without `--no-ragas`) populates these columns.
+RAGAS scores answer quality with an **independent judge** (`gemini-2.5-flash`, deliberately a
+different model from the `llama3.2` generator — see DECISIONS D2). The harness
+(`eval/ragas_eval.py`) runs the four metrics; `python -m eval.run_eval --config <cfg> --ragas
+--ragas-workers 12` produces them (the `--ragas` flag force-enables generation + judging on
+the retrieval-only ablation configs). Measured over the 34 answerable questions:
 
-One judge-free groundedness signal *was* measured: **abstention rate = 1.00** on the baseline
-— the pipeline refused all 6 unanswerable questions rather than hallucinating.
+| Config | faithfulness | answer_relevancy | context_precision | context_recall |
+|---|---|---|---|---|
+| Naive dense (baseline) | 0.654 | 0.755 | **0.513** | **0.794** |
+| Hybrid (RRF) | 0.666 | **0.801** | 0.419 | 0.765 |
+| Hybrid + rerank (k=10) | **0.733** | 0.707 | 0.404 | 0.735 |
+| Hybrid + rerank (k=20) | 0.651 | 0.706 | 0.393 | 0.686 |
+
+**Reading (and it corroborates the retrieval story):** the **baseline has the best
+`context_precision` (0.513) and `context_recall` (0.794)** — dense-only keeps the top-k
+cleanest. Hybrid and reranking both *lower* precision (0.42 / 0.40), because BM25 and the
+out-of-domain cross-encoder pull less-relevant chunks into the context — exactly the
+mechanism the retrieval metrics show in D7/D9. Reranking (k=10) buys the best `faithfulness`
+(0.733) by trading precision. **No config's answer quality clearly beats the baseline** — the
+same honest headline as the ranking metrics, now confirmed by an independent judge.
+
+**Not judged (left unmeasured, not estimated — R2):** the two multi-query configs, rerank
+k=50, and the full stack. Forcing generation on top of the resident torch cross-encoder on a
+single laptop triggers the CPU/memory contention documented above, making those runs
+impractically slow to judge end-to-end. They can be filled on a machine without that
+contention via the same `--ragas` command.
+
+*(Implementation note — three fixes were needed to make RAGAS run against Gemini 2.5:
+parallelise judge calls off the free-tier rate limit; set `thinking_budget=0` so the thinking
+model doesn't exhaust its output budget; and override RAGAS's finish-reason check, which only
+accepts lowercase `"stop"` while Gemini returns `"STOP"`. See `eval/ragas_eval.py`.)*
+
+One judge-free groundedness signal was measured: **abstention rate = 1.00** on the baseline —
+the pipeline refused all 6 unanswerable questions rather than hallucinating.
 
 ## Threats to validity
 
@@ -139,8 +164,10 @@ One judge-free groundedness signal *was* measured: **abstention rate = 1.00** on
   *because* the corpus is tiny and semantically separable. On a larger, noisier corpus (many
   races, drivers, sessions) BM25, reranking and decomposition would very plausibly flip from
   net-negative to net-positive. **These conclusions are corpus-specific and stated as such.**
-- **Single judge, and it didn't run** — RAGAS is pending; answer-quality claims are currently
-  unmade rather than assumed.
+- **Single judge, and only a partial run** — RAGAS was measured for baseline, hybrid and the
+  two smaller rerank configs, but the multi-query, rerank k=50 and full configs were not judged
+  (single-laptop contention). It is one LLM judge (Gemini), so answer-quality is corroborating
+  evidence, not the backbone; the retrieval metrics remain the trustworthy anchor.
 - **Questions authored by the system's builder** — despite verification against FastF1 source,
   there is author bias in what was asked and labeled.
 - **Latency on a shared laptop, separate runs** — treat p50/p95 as order-of-magnitude. The

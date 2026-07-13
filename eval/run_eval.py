@@ -88,9 +88,19 @@ def main() -> None:
                     help="retrieval metrics only; skip LLM generation, abstention and RAGAS")
     ap.add_argument("--ragas-workers", type=int, default=1,
                     help="parallel RAGAS judge calls; keep 1 on the free tier, raise (e.g. 12) on a paid key")
+    ap.add_argument("--generation", action="store_true",
+                    help="force-enable generation even if the config disables it "
+                         "(retrieval-only ablation configs need this to produce answers for RAGAS)")
+    ap.add_argument("--ragas", action="store_true",
+                    help="force-enable RAGAS even if the config disables it (implies generation)")
     args = ap.parse_args()
 
     config = load_config(args.config)
+    # force-enables first so the --no-* switches still win if both are passed
+    if args.generation or args.ragas:
+        config.generation.enabled = True
+    if args.ragas:
+        config.eval.ragas = True
     if args.no_generation:
         config.generation.enabled = False
     if args.no_ragas:

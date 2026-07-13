@@ -18,6 +18,25 @@ import os
 RAGAS_METRICS = ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]
 
 
+def _gemini_is_finished(response) -> bool:
+    """RAGAS 0.2.x hard-codes `finish_reason == "stop"` (lowercase), but Gemini
+    returns "STOP" (uppercase), so its default parser flags every completed call as
+    unfinished and raises LLMDidNotFinishException. Treat the Gemini finish reasons
+    as terminal (case-insensitively); missing reason == finished.
+    """
+    ok = {"STOP", "MAX_TOKENS", "FINISH_REASON_STOP"}
+    for gen_list in response.generations:
+        for gen in gen_list:
+            reason = (getattr(gen, "generation_info", None) or {}).get("finish_reason")
+            if reason is None:
+                msg = getattr(gen, "message", None)
+                if msg is not None:
+                    reason = (getattr(msg, "response_metadata", None) or {}).get("finish_reason")
+            if reason is not None and str(reason).upper() not in ok:
+                return False
+    return True
+
+
 def gemini_available() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
@@ -72,7 +91,10 @@ def evaluate_samples(
             # give the (short, structured) judge verdict room to complete.
             thinking_budget=0,
             max_output_tokens=2048,
-        )
+        ),
+        # Override ragas' finish-reason check, which only accepts lowercase "stop"
+        # and so rejects Gemini's "STOP" on every call.
+        is_finished_parser=_gemini_is_finished,
     )
     judge_emb = LangchainEmbeddingsWrapper(
         GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=key)
