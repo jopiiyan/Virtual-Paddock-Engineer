@@ -59,7 +59,7 @@ configs is multi-query decompose (0.754); best recall@10 is hybrid and hybrid+re
 | Hybrid + rerank (k=10) | 0.75 | **0.85** | 0.79 | 0.75 |
 | Full | 0.75 | 0.80 | 0.79 | 0.75 |
 
-Read this table as the actual argument of the project:
+This table shows that:
 - **BM25 owns exact-term (1.00) and fails paraphrase (0.38)**: the textbook complementarity
   that justifies *fusing* the two legs rather than replacing one with the other.
 - **Hybrid inherits BM25's exact-term win (1.00)** and keeps dense's paraphrase score; the
