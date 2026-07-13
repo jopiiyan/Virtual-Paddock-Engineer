@@ -119,7 +119,7 @@ semantic pipeline for genuinely fuzzy questions.
 ## RAGAS (answer quality): judged by Gemini
 
 RAGAS scores answer quality with an **independent judge** (`gemini-2.5-flash`, deliberately a
-different model from the `llama3.2` generator; see DECISIONS D2). The harness
+different model from the `llama3.2` generator). The harness
 (`eval/ragas_eval.py`) runs the four metrics; `python -m eval.run_eval --config <cfg> --ragas
 --ragas-workers 12` produces them (the `--ragas` flag force-enables generation + judging on
 the retrieval-only ablation configs). Measured over the 34 answerable questions:
