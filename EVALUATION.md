@@ -8,11 +8,21 @@ generation-enabled configs; see the RAGAS section.
 
 ---
 
-## TL;DR: the honest headline
+## TL;DR — the honest headline
 
-On this corpus, hybrid search (dense + BM25) is the only advanced technique that earns its place — it's the sole config that improves on the naive baseline at no cost, lifting recall@10 from 0.931 to 0.971, closing the exact-term gap entirely, and running faster than baseline (160ms vs 346ms p50) because the BM25 leg is essentially free.
-The tradeoff is real and worth naming: hybrid gives up a little top-rank precision (MRR 0.806 → 0.725) because BM25's picks occasionally dilute a strong dense rank-1. I took that trade because deep recall and exact-term coverage mattered more for this use case than shaving the very top rank.
-Reranking and multi-query do not earn their place on this small, clean corpus — each rescues one query type while regressing others, at real latency cost. The value of the harness is being able to prove that rather than assume the opposite.
+**On this corpus, hybrid search (dense + BM25) is the only advanced technique that earns
+its place** — it's the sole config that improves on the naive baseline at no cost, lifting
+recall@10 from **0.931 → 0.971**, closing the exact-term gap entirely, and running *faster*
+than baseline (**160ms vs 346ms p50**) because the BM25 leg is essentially free.
+
+**The tradeoff is real and worth naming:** hybrid gives up a little top-rank precision
+(**MRR 0.806 → 0.725**) because BM25's picks occasionally dilute a strong dense rank-1. I
+took that trade because deep recall and exact-term coverage mattered more for this use case
+than shaving the very top rank.
+
+**Reranking and multi-query do not earn their place on this small, clean corpus** — each
+rescues one query type while regressing others, at real latency cost. The value of the
+harness is being able to *prove* that rather than assume the opposite.
 ---
 
 ## The ablation table
