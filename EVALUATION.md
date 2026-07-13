@@ -65,8 +65,7 @@ This table shows that:
 - **Hybrid inherits BM25's exact-term win (1.00)** and keeps dense's paraphrase score; the
   fusion works as intended, closing the `e_05` "SOFT tyres" gap the baseline failed.
 - **Multi-query decomposition owns paraphrase (0.88)** but *regresses comparative*: the mode
-  built for comparatives didn't help them (see D8: RRF dilution + llama3.2 can't decompose
-  entities it doesn't know, e.g. Ferrari→Hamilton+Leclerc).
+  built for comparatives didn't help them.
 - **Reranking (k=10) owns comparative (0.85)** but *breaks exact-term* (0.79): the
   out-of-domain cross-encoder promotes result docs over stint docs for compound queries.
 - **No config is best everywhere.** Every gain is a local trade.
