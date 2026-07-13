@@ -10,7 +10,7 @@ generation-enabled configs; see the RAGAS section.
 
 ## TL;DR — the honest headline
 
-**On this corpus, hybrid search (dense + BM25) is the only advanced technique that earns
+**On this corpus, hybrid search (dense + BM25) and hybrid + rerank(k=10) are the only advanced technique that earns
 its place** — it's the sole config that improves on the naive baseline at no cost, lifting
 recall@10 from **0.931 → 0.971**, closing the exact-term gap entirely, and running *faster*
 than baseline (**160ms vs 346ms p50**) because the BM25 leg is essentially free.
