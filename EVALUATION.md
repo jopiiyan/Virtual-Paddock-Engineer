@@ -6,9 +6,6 @@
 **Judge:** Gemini (`gemini-2.5-flash`, independent of the generator); RAGAS measured for the
 generation-enabled configs; see the RAGAS section.
 
-Every number here is reproducible by running a script in this repo (CLAUDE.md R2). Nothing
-is estimated or illustrative.
-
 ---
 
 ## TL;DR: the honest headline
@@ -115,8 +112,8 @@ Component latency, isolated:
 queries ("which compound", "who degraded less", "fastest average") that are a fundamental
 mismatch for semantic retrieval; no amount of fusion or reranking fixes them. The next build
 is a **query router with a text-to-SQL path** for aggregation/attribute queries, keeping the
-semantic pipeline for genuinely fuzzy questions. This is out of scope for this build by design
-(CLAUDE.md §5 P5).
+semantic pipeline for genuinely fuzzy questions. 
+
 
 ## RAGAS (answer quality): judged by Gemini
 
