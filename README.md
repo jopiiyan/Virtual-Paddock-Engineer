@@ -2,17 +2,16 @@
 
 A full-stack Formula 1 analytics application that lets you **compare two drivers' race performance** through interactive telemetry charts and ask questions about it in **natural language**, answered by a Retrieval-Augmented Generation (RAG) pipeline grounded in real race data.
 
-The **application runtime** — the LLM and embedding stack that serves the app — runs **locally via Ollama**, with no external API keys and no per-token cost. The **offline evaluation harness** is the one exception: its RAGAS answer-quality metrics are judged by the Google Gemini API (free tier), deliberately kept separate from the local generator model to avoid self-grading bias. See [EVALUATION.md](EVALUATION.md).
+The **application runtime** (the LLM and embedding stack that serves the app) runs **locally via Ollama**, with no external API keys and no per-token cost. The **offline evaluation harness** is the one exception: its RAGAS answer-quality metrics are judged by the Google Gemini API (free tier), deliberately kept separate from the local generator model to avoid self-grading bias. See [EVALUATION.md](EVALUATION.md).
 
 > **Advanced retrieval & evaluation.** On top of the app, this repo builds a measured
 > retrieval-evaluation harness (classical IR metrics + RAGAS) over a 40-question
 > hand-verified golden set, freezes a naive-RAG baseline, then ablates **hybrid search
-> (BM25 + RRF)**, **multi-query expansion**, and **cross-encoder reranking** against it —
+> (BM25 + RRF)**, **multi-query expansion**, and **cross-encoder reranking** against it,
 > with the latency cost of each. **Every number is reproducible** (`python -m eval.run_eval …`).
 > The honest headline: on this small, clean corpus the naive dense baseline is hard to beat,
-> and only hybrid clearly earns its place — see **[EVALUATION.md](EVALUATION.md)** for the
-> ablation table, **[docs/DECISIONS.md](docs/DECISIONS.md)** for why each component was
-> chosen, and **[docs/AUDIT.md](docs/AUDIT.md)** for the starting-state audit.
+> and only hybrid clearly earns its place. See **[EVALUATION.md](EVALUATION.md)** for the
+> ablation table and the full write-up.
 
 ---
 
@@ -25,11 +24,11 @@ The **application runtime** — the LLM and embedding stack that serves the app 
 
 ## Features
 
-- **Comparative driver dashboard** — pick two drivers and compare lap pace, tyre degradation, and top speed across a race through interactive charts.
-- **RAG chat assistant** — ask questions like _"How did Hamilton's hard tyres hold up?"_ and get answers grounded only in retrieved race data.
-- **Source "receipts"** — every answer shows the exact stint records it was based on, so nothing is taken on faith.
-- **Streaming responses** — answers stream token-by-token over Server-Sent Events (SSE).
-- **Fully local inference at runtime** — the app's LLM (`llama3.2`) and embeddings (`nomic-embed-text`) run on Ollama; zero external API cost to serve queries. (Only the offline RAGAS evaluation uses an external judge — the Gemini API — never the live app.)
+- **Comparative driver dashboard**: pick two drivers and compare lap pace, tyre degradation, and top speed across a race through interactive charts.
+- **RAG chat assistant**: ask questions like _"How did Hamilton's hard tyres hold up?"_ and get answers grounded only in retrieved race data.
+- **Source "receipts"**: every answer shows the exact stint records it was based on, so nothing is taken on faith.
+- **Streaming responses**: answers stream token-by-token over Server-Sent Events (SSE).
+- **Fully local inference at runtime**: the app's LLM (`llama3.2`) and embeddings (`nomic-embed-text`) run on Ollama; zero external API cost to serve queries. (Only the offline RAGAS evaluation uses an external judge, the Gemini API, never the live app.)
 
 ---
 
@@ -60,17 +59,17 @@ The **application runtime** — the LLM and embedding stack that serves the app 
 | Backend | FastAPI, Server-Sent Events |
 | Orchestration | LangChain (LCEL) |
 | Vector store | Supabase (PostgreSQL + pgvector, HNSW index) |
-| LLM & embeddings | Ollama — `llama3.2`, `nomic-embed-text` (768-dim) |
+| LLM & embeddings | Ollama: `llama3.2`, `nomic-embed-text` (768-dim) |
 | Data source | FastF1 |
 
 ---
 
 ## How the RAG pipeline works
 
-1. **Ingestion** — `FastF1` telemetry is parsed into one record *per driver, per stint*. Each record is written as a natural-language summary (e.g. _"In the 2025 Silverstone GP, HAM ran stint 2 on Hard tyres over 14 laps: average lap 1:31.420, top speed 312 km/h, tyre degradation +0.080 s/lap."_). These summaries — not raw numbers — are what gets embedded, so they retrieve well against natural-language questions.
-2. **Storage** — each summary is embedded with `nomic-embed-text` (768-dim) and stored in a Supabase `documents` table, with structured tags (`driver`, `year`, `grand_prix`, `stint`, `compound`) in a `jsonb` metadata column for exact filtering.
-3. **Retrieval** — at query time, the question is embedded and matched against stored vectors via a `match_documents` SQL function (cosine distance, accelerated by an HNSW index), with optional metadata filtering.
-4. **Generation** — retrieved summaries are composed into a strict, context-grounded prompt and answered by a local LLM through a LangChain LCEL chain. The prompt forbids outside knowledge and instructs the model to say so when the answer isn't in the data.
+1. **Ingestion:** `FastF1` telemetry is parsed into one record *per driver, per stint*. Each record is written as a natural-language summary (e.g. _"In the 2025 Silverstone GP, HAM ran stint 2 on Hard tyres over 14 laps: average lap 1:31.420, top speed 312 km/h, tyre degradation +0.080 s/lap."_). These summaries, not raw numbers, are what gets embedded, so they retrieve well against natural-language questions.
+2. **Storage:** each summary is embedded with `nomic-embed-text` (768-dim) and stored in a Supabase `documents` table, with structured tags (`driver`, `year`, `grand_prix`, `stint`, `compound`) in a `jsonb` metadata column for exact filtering.
+3. **Retrieval:** at query time, the question is embedded and matched against stored vectors via a `match_documents` SQL function (cosine distance, accelerated by an HNSW index), with optional metadata filtering.
+4. **Generation:** retrieved summaries are composed into a strict, context-grounded prompt and answered by a local LLM through a LangChain LCEL chain. The prompt forbids outside knowledge and instructs the model to say so when the answer isn't in the data.
 
 ---
 
@@ -145,7 +144,7 @@ INGEST_YEAR=2025
 INGEST_GP=Silverstone
 ```
 
-> ⚠️ The service-role key is backend-only — never expose it to the frontend or commit it to git. Add `.env` to `.gitignore`.
+> ⚠️ The service-role key is backend-only; never expose it to the frontend or commit it to git. Add `.env` to `.gitignore`.
 
 ### 4. Run the backend
 
@@ -174,7 +173,7 @@ Open the dev server URL (e.g. `http://localhost:5173`), pick two drivers, and st
 
 ## Reproduce the evaluation
 
-Every number in [EVALUATION.md](EVALUATION.md) is produced by a script — nothing is estimated.
+Every number in [EVALUATION.md](EVALUATION.md) is produced by a script; nothing is estimated.
 
 ```bash
 cd backend && pip install -r requirements.txt && cd ..
