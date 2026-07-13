@@ -86,6 +86,8 @@ def main() -> None:
                     help="skip RAGAS even if the config enables it (e.g. judge quota unavailable)")
     ap.add_argument("--no-generation", action="store_true",
                     help="retrieval metrics only; skip LLM generation, abstention and RAGAS")
+    ap.add_argument("--ragas-workers", type=int, default=1,
+                    help="parallel RAGAS judge calls; keep 1 on the free tier, raise (e.g. 12) on a paid key")
     args = ap.parse_args()
 
     config = load_config(args.config)
@@ -175,7 +177,7 @@ def main() -> None:
     if config.eval.ragas and gen_chain is not None and ragas_samples:
         from eval.ragas_eval import evaluate_samples, gemini_available
         if gemini_available():
-            row["ragas_metrics"] = {k: round(v, 4) for k, v in evaluate_samples(ragas_samples).items()}
+            row["ragas_metrics"] = {k: round(v, 4) for k, v in evaluate_samples(ragas_samples, max_workers=args.ragas_workers).items()}
         else:
             row["ragas_metrics"] = {"skipped": "no GEMINI_API_KEY"}
 

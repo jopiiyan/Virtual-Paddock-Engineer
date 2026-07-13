@@ -62,7 +62,17 @@ def evaluate_samples(
     )
 
     judge = LangchainLLMWrapper(
-        ChatGoogleGenerativeAI(model=judge_model, google_api_key=key, temperature=0)
+        ChatGoogleGenerativeAI(
+            model=judge_model,
+            google_api_key=key,
+            temperature=0,
+            # gemini-2.5-flash is a thinking model: without these it spends the whole
+            # output budget on internal reasoning and the answer never finishes, so
+            # ragas raises LLMDidNotFinishException on every row. Disable thinking and
+            # give the (short, structured) judge verdict room to complete.
+            thinking_budget=0,
+            max_output_tokens=2048,
+        )
     )
     judge_emb = LangchainEmbeddingsWrapper(
         GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=key)

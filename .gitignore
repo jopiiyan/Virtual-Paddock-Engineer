@@ -1,12 +1,10 @@
 .env
 backend/.env
-venv
+.venv
 CLAUDE.md
 __pycache__/
 *.pyc
 backend/f1_cache/
 .DS_Store
 .claude
-docs/AUDIT.md
 explanation.md
-docs/DECISIONS.md
