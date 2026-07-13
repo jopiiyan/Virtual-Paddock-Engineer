@@ -134,8 +134,7 @@ the retrieval-only ablation configs). Measured over the 34 answerable questions:
 **Reading (and it corroborates the retrieval story):** the **baseline has the best
 `context_precision` (0.513) and `context_recall` (0.794)**: dense-only keeps the top-k
 cleanest. Hybrid and reranking both *lower* precision (0.42 / 0.40), because BM25 and the
-out-of-domain cross-encoder pull less-relevant chunks into the context, exactly the
-mechanism the retrieval metrics show in D7/D9. Reranking (k=10) buys the best `faithfulness`
+out-of-domain cross-encoder pull less-relevant chunks into the context. Reranking (k=10) buys the best `faithfulness`
 (0.733) by trading precision. **No config's answer quality clearly beats the baseline**: the
 same honest headline as the ranking metrics, now confirmed by an independent judge.
 
