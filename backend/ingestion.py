@@ -3,7 +3,7 @@
 
 import os
 from pathlib import Path
-
+from backend.vectorstore import EMBEDDING_MODEL
 import numpy as np
 import pandas as pd
 import fastf1
@@ -223,7 +223,7 @@ def main() -> None:
     supabase = create_client(supabase_url, supabase_key)  #a template
     SupabaseVectorStore.from_documents(   ##automatically map page_content to content, metadat to metadata, embedding to embedding
         docs,
-        OllamaEmbeddings(model="nomic-embed-text"),
+         OllamaEmbeddings(model=EMBEDDING_MODEL),
         client=supabase,
         table_name="documents",
         query_name="match_documents",

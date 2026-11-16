@@ -13,6 +13,7 @@ Run:  uvicorn backend.api:app --reload --port 8000   (from the project root)
 """
 
 import json
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,7 +43,9 @@ CHAT_PROMPT = ChatPromptTemplate.from_template(
 )
 
 # Build once at startup — these are reused across every request.
-LLM = ChatOllama(model="llama3.2", temperature=0)
+OLLAMA_BASE_URL =os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
+LLM = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
 ALIAS_MAP = load_alias_map()
 ANSWER_CHAIN = CHAT_PROMPT | LLM | StrOutputParser()
 

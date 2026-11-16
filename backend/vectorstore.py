@@ -31,7 +31,10 @@ def get_client() -> Client:
 def get_embedder() -> OllamaEmbeddings:
     global _EMBEDDER
     if _EMBEDDER is None:
-        _EMBEDDER = OllamaEmbeddings(model=EMBEDDING_MODEL)
+        _EMBEDDER = OllamaEmbeddings(
+            model=EMBEDDING_MODEL,
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        )
     return _EMBEDDER
 
 

@@ -1,0 +1,23 @@
+# Runtime deps for serving the API (what the Docker image installs).
+# Only what `backend.api` imports at runtime — no eval/test/reranker packages,
+# which keeps the image small (sentence-transformers alone pulls in PyTorch).
+# The full dev/eval environment is requirements.txt, which includes this file.
+
+# --- API ---
+fastapi==0.137.1
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+python-dotenv==1.2.2
+
+# --- Core RAG: LangChain + Ollama + Supabase ---
+# NB: langchain must stay on the 0.3.x line (see requirements.txt).
+langchain==0.3.30
+langchain-core==0.3.86
+langchain-community==0.3.31
+langchain-ollama==0.2.3
+supabase==2.31.0
+
+# --- Telemetry / driver aliases (backend.telemetry, backend.drivers) ---
+fastf1==3.8.3
+numpy==2.2.6
+pandas==2.3.3

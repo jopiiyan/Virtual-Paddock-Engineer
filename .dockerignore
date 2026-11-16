@@ -1,0 +1,25 @@
+# Secrets: never bake into the image (passed at runtime instead)
+.env
+**/.env
+
+# Python local stuff
+.venv
+**/__pycache__
+**/*.pyc
+
+# FastF1 disk cache: rebuilt at runtime, can get big
+backend/f1_cache
+
+# Not needed by the backend image
+frontend
+eval
+docs
+scripts
+configs
+*.md
+
+# Tooling / OS junk
+.git
+.claude
+.DS_Store
+backend/tests

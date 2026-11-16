@@ -1,0 +1,23 @@
+services:
+  backend:
+    #How to build the image: context = project root usiing our Dockerfile
+    build: 
+      context: .
+      dockerfile: backend/Dockerfile
+    
+    #HOST:Container -Mac's port 8000
+    ports: 
+      - "8000:8000"
+    
+    #Secrets: read from .env at RUNTIME (never baked into the image)
+    env_file:
+      - .env
+    
+    #Non-secret config. host.docker.internal = "my Mac", as seen from inside a contianer
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    
+    volumes:
+      - f1_cache:/app/backend/f1_cache
+volumes:
+  f1_cache:
