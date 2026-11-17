@@ -13,11 +13,25 @@ services:
     env_file:
       - .env
     
-    #Non-secret config. host.docker.internal = "my Mac", as seen from inside a contianer
+    #Non-secret config. Model choice lives in backend/models.py.
+    #EMBEDDING_PROVIDER must match whatever the Supabase rows were ingested with.
     environment:
+      LLM_PROVIDER: gemini
+      EMBEDDING_PROVIDER: gemini
+      #Only used if a provider above is set to "ollama" (host.docker.internal = "my Mac")
       OLLAMA_BASE_URL: http://host.docker.internal:11434
     
     volumes:
       - f1_cache:/app/backend/f1_cache
+
+  frontend:
+    # Multi-stage build: Node builds the React app, nginx serves it and proxies /api -> backend
+    build: ./frontend
+    #HOST:Container - open http://localhost:3000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
 volumes:
   f1_cache:

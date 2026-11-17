@@ -14,7 +14,6 @@ PyYAML==6.0.3                    # pipeline configs
 
 # --- Evaluation harness ---
 ragas==0.2.6                     # RAGAS answer-quality metrics
-langchain-google-genai==2.1.12   # Gemini judge for RAGAS
 datasets==5.0.0                  # ragas dataset plumbing
 matplotlib==3.10.9               # tradeoff plot
 

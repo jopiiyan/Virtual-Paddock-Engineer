@@ -13,7 +13,6 @@ Run:  uvicorn backend.api:app --reload --port 8000   (from the project root)
 """
 
 import json
-import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,11 +20,11 @@ from fastapi.responses import StreamingResponse
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
 from backend.chain import GROUNDING_INSTRUCTION, RETRIEVAL_K, format_docs
 from backend.drivers import detect_driver, load_alias_map
+from backend.models import get_llm
 from backend.telemetry import compare_telemetry, get_schedule
 from backend.vectorstore import dense_search, get_client
 
@@ -43,9 +42,7 @@ CHAT_PROMPT = ChatPromptTemplate.from_template(
 )
 
 # Build once at startup — these are reused across every request.
-OLLAMA_BASE_URL =os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
-LLM = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
+LLM = get_llm()  # provider chosen by LLM_PROVIDER (see backend/models.py)
 ALIAS_MAP = load_alias_map()
 ANSWER_CHAIN = CHAT_PROMPT | LLM | StrOutputParser()
 

@@ -1,15 +1,14 @@
 import os
 
-from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import SupabaseVectorStore
 from supabase import Client, create_client
 
+from backend.models import build_embedder
 
-EMBEDDING_MODEL = "nomic-embed-text"
 
 # Built once and reused — reconnecting / reloading the embedder per query is wasteful.
 _CLIENT: Client | None = None
-_EMBEDDER: OllamaEmbeddings | None = None
+_EMBEDDER = None
 
 
 def _load_env() -> None:
@@ -28,13 +27,11 @@ def get_client() -> Client:
     return _CLIENT
 
 
-def get_embedder() -> OllamaEmbeddings:
+def get_embedder():
+    """The embedder chosen by EMBEDDING_PROVIDER (see backend/models.py)."""
     global _EMBEDDER
     if _EMBEDDER is None:
-        _EMBEDDER = OllamaEmbeddings(
-            model=EMBEDDING_MODEL,
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        )
+        _EMBEDDER = build_embedder()
     return _EMBEDDER
 
 

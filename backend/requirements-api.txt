@@ -9,12 +9,13 @@ uvicorn[standard]==0.49.0
 pydantic==2.13.4
 python-dotenv==1.2.2
 
-# --- Core RAG: LangChain + Ollama + Supabase ---
+# --- Core RAG: LangChain + Gemini/Ollama + Supabase ---
 # NB: langchain must stay on the 0.3.x line (see requirements.txt).
 langchain==0.3.30
 langchain-core==0.3.86
 langchain-community==0.3.31
-langchain-ollama==0.2.3
+langchain-ollama==0.2.3          # optional local provider (LLM_PROVIDER/EMBEDDING_PROVIDER=ollama)
+langchain-google-genai==2.1.12   # default provider: Gemini LLM + embeddings
 supabase==2.31.0
 
 # --- Telemetry / driver aliases (backend.telemetry, backend.drivers) ---

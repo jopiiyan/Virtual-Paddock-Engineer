@@ -1,22 +1,23 @@
-"""FastF1 -> LangChain Documents -> Supabase pgvector.
+"""F1 race data -> LangChain Documents -> Supabase pgvector.
+
+Sources (both free, no login): OpenF1 for per-lap timing + tyre stints, Jolpica for
+classified results. FastF1 used to be the source, but F1's livetiming server now
+requires an F1TV sign-in (401) — see backend/f1data.py.
 """
 
 import os
-from pathlib import Path
-from backend.vectorstore import EMBEDDING_MODEL
+
 import numpy as np
 import pandas as pd
-import fastf1
 from langchain_core.documents import Document
-from langchain_ollama import OllamaEmbeddings
-from langchain_community.vectorstores import SupabaseVectorStore
 from supabase import create_client
 
-# Cache FIRST, before any other fastf1 call — non-negotiable (see gotchas).
-# Anchored to this package dir so it works regardless of the current directory.
-CACHE_DIR = Path(__file__).resolve().parent / "f1_cache"
-CACHE_DIR.mkdir(exist_ok=True)
-fastf1.Cache.enable_cache(str(CACHE_DIR))
+from backend.f1data import jolpica_race_results, openf1, openf1_session_key
+from backend.vectorstore import get_embedder
+
+# Same rule FastF1's pick_quicklaps() applied: drop laps slower than 107% of the
+# session's fastest lap (safety-car, in/out and traffic-wrecked laps).
+QUICKLAP_THRESHOLD = 1.07
 
 
 SESSION_LABELS = {"R": "Race", "Q": "Qualifying", "S": "Sprint", "FP1": "Practice 1",
@@ -56,19 +57,50 @@ def fmt_sector(td) -> str:
 
 def trap_speed(stint_laps, col) -> str:
     """Max speed (km/h) seen at one speed trap over the stint, or 'n/a'."""
-    val = stint_laps[col].max()
+    val = pd.to_numeric(stint_laps[col], errors="coerce").max()
     return f"{int(round(val))} km/h" if np.isfinite(val) else "n/a"
 
 
-def build_stint_documents(year: int, gp: str, session_type: str = "R") -> list[Document]:
-    session = fastf1.get_session(year, gp, session_type)
-    session.load(telemetry=False, weather=False)   # we only need lap data
+def load_quicklaps(year: int, gp: str, session_type: str = "R") -> pd.DataFrame:
+    """OpenF1 laps for one session, tagged with driver code / stint / compound,
+    in the same column names the document builder used with FastF1."""
+    session_name = SESSION_LABELS.get(session_type, session_type)
+    key = openf1_session_key(year, gp, session_name)
 
-    laps = session.laps.pick_quicklaps()   # drops in/out/safety-car laps
+    codes = {d["driver_number"]: d["name_acronym"] for d in openf1("drivers", session_key=key)}
+    stints = openf1("stints", session_key=key)
+    laps = pd.DataFrame(openf1("laps", session_key=key))
+
+    def stint_of(row):
+        for s in stints:
+            if (s["driver_number"] == row["driver_number"]
+                    and s["lap_start"] <= row["lap_number"] <= (s["lap_end"] or 10**6)):
+                return s["stint_number"], (s["compound"] or "UNKNOWN")
+        return None, None
+
+    laps[["Stint", "Compound"]] = laps.apply(stint_of, axis=1, result_type="expand")
+    laps["Driver"] = laps["driver_number"].map(codes)
+    laps = laps.dropna(subset=["lap_duration", "Stint", "Driver"])
+    laps = laps[~laps["is_pit_out_lap"].astype(bool)]
+    laps = laps[laps["lap_duration"] <= laps["lap_duration"].min() * QUICKLAP_THRESHOLD]
+
+    secs = lambda col: pd.to_timedelta(pd.to_numeric(laps[col], errors="coerce"), unit="s")
+    return laps.assign(
+        LapNumber=laps["lap_number"],
+        LapTime=secs("lap_duration"),
+        Sector1Time=secs("duration_sector_1"),
+        Sector2Time=secs("duration_sector_2"),
+        Sector3Time=secs("duration_sector_3"),
+        SpeedI1=laps["i1_speed"], SpeedI2=laps["i2_speed"], SpeedST=laps["st_speed"],
+    )
+
+
+def build_stint_documents(year: int, gp: str, session_type: str = "R") -> list[Document]:
+    laps = load_quicklaps(year, gp, session_type)
 
     docs = []
     for driver in laps["Driver"].unique():
-        driver_laps = laps.pick_drivers(driver)
+        driver_laps = laps[laps["Driver"] == driver]
         for stint_num, stint_laps in driver_laps.groupby("Stint"):
             if len(stint_laps) < 3:        # too short to say anything useful
                 continue
@@ -85,8 +117,9 @@ def build_stint_documents(year: int, gp: str, session_type: str = "R") -> list[D
             s3 = fmt_sector(stint_laps["Sector3Time"].mean())
 
             # Per-trap max speeds (km/h). ST is the main straight-line trap.
+            # (OpenF1 has no finish-line trap, so FL from the FastF1 era is gone.)
             i1, i2 = trap_speed(stint_laps, "SpeedI1"), trap_speed(stint_laps, "SpeedI2")
-            fl, st = trap_speed(stint_laps, "SpeedFL"), trap_speed(stint_laps, "SpeedST")
+            st = trap_speed(stint_laps, "SpeedST")
 
             # Degradation = slope of lap time (s) vs lap number, i.e. seconds lost per lap.
             # Positive slope = tyres slowing down over the stint.
@@ -104,7 +137,7 @@ def build_stint_documents(year: int, gp: str, session_type: str = "R") -> list[D
                 f"on {compound} tyres over {len(stint_laps)} laps. "
                 f"Average lap {avg_laptime}, best lap {best_laptime}. "
                 f"Average sector times: S1 {s1}, S2 {s2}, S3 {s3}. "
-                f"Top speeds at the traps: I1 {i1}, I2 {i2}, FL {fl}, ST {st}. "
+                f"Top speeds at the traps: I1 {i1}, I2 {i2}, ST {st}. "
                 f"Tyre degradation {degradation:+.3f} s/lap "
                 f"({'tyres slowing' if degradation > 0 else 'pace holding/improving'})."
             )
@@ -144,42 +177,36 @@ def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[
     the stint documents. The winner's row holds the total race time; everyone
     else's Time is the gap to the winner.
     """
-    session = fastf1.get_session(year, gp, session_type)
-    session.load(laps=False, telemetry=False, weather=False)  # results only
-
     session_label = SESSION_LABELS.get(session_type, session_type)
-    results = session.results
-    # The winner's Time is the absolute race time; everyone else's Time is the
-    # gap to the winner. So a finisher's own finishing time = winner_td + gap.
-    winner_td = results.iloc[0]["Time"] if len(results) else None
-    winner_time = fmt_racetime(winner_td)
+    results = jolpica_race_results(year, gp)
+    # Jolpica gives every finisher an absolute race time in millis.
+    winner_ms = int(results[0]["Time"]["millis"]) if results and "Time" in results[0] else None
+    winner_time = fmt_racetime(pd.Timedelta(milliseconds=winner_ms)) if winner_ms else None
 
     docs = []
-    for _, row in results.iterrows():
-        code = str(row["Abbreviation"]).upper()
-        name = str(row["FullName"])
-        team = str(row["TeamName"])
-        status = str(row["Status"])
-        points = row["Points"]
-        grid = row["GridPosition"]
-        grid_txt = f" from grid P{int(grid)}" if pd.notna(grid) else ""
-        points_txt = f", scoring {int(points)} points" if pd.notna(points) else ""
+    for row in results:
+        code = row["Driver"]["code"].upper()
+        name = f'{row["Driver"]["givenName"]} {row["Driver"]["familyName"]}'
+        team = row["Constructor"]["name"]
+        status = row["status"]
+        points = float(row["points"])
+        grid = int(row["grid"])
+        grid_txt = f" from grid P{grid}" if grid > 0 else " from the pit lane"
+        points_txt = f", scoring {points:g} points"
 
-        pos = row["Position"]
-        finished = pd.notna(pos)
-        pos_int = int(pos) if finished else None
+        # positionText is a number only for classified finishers ('R', 'W', 'D' otherwise).
+        finished = row["positionText"].isdigit()
+        pos_int = int(row["position"]) if finished else None
+        finish_ms = int(row["Time"]["millis"]) if "Time" in row else None
 
         if pos_int == 1:
             timing = f"won the race in a finishing time of {winner_time}" if winner_time else "won the race"
-        elif finished and status == "Finished" and pd.notna(row["Time"]):
-            gap = row["Time"].total_seconds()
-            finish_time = fmt_racetime(winner_td + row["Time"]) if winner_td is not None and pd.notna(winner_td) else None
-            timing = (
-                f"finished P{pos_int} in a finishing time of {finish_time} (+{gap:.3f}s behind the winner)"
-                if finish_time else f"finished P{pos_int}, +{gap:.3f}s behind the winner"
-            )
+        elif finished and finish_ms and winner_ms:
+            gap = (finish_ms - winner_ms) / 1000
+            finish_time = fmt_racetime(pd.Timedelta(milliseconds=finish_ms))
+            timing = f"finished P{pos_int} in a finishing time of {finish_time} (+{gap:.3f}s behind the winner)"
         elif finished:
-            # Lapped or classified-but-not-on-lead-lap (Status carries '+1 Lap' etc.)
+            # Lapped cars have no time; status carries 'Lapped' / '+1 Lap'.
             timing = f"finished P{pos_int} ({status})"
         else:
             timing = f"did not finish (Status: {status})"
@@ -204,6 +231,29 @@ def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[
     return docs
 
 
+def embed_with_backoff(texts: list[str], batch: int = 20, max_waits: int = 10) -> list[list[float]]:
+    """Embed in small batches; on a rate-limit (429) wait a minute and retry.
+
+    Gemini's free tier counts each text as a request, so embedding a whole race
+    at once trips the per-minute quota.
+    """
+    import time
+
+    embedder = get_embedder()
+    out: list[list[float]] = []
+    for i in range(0, len(texts), batch):
+        for attempt in range(max_waits + 1):
+            try:
+                out += embedder.embed_documents(texts[i:i + batch])
+                break
+            except Exception as exc:
+                if "429" not in str(exc) or attempt == max_waits:
+                    raise
+                print(f"  rate-limited at doc {i}/{len(texts)}; waiting 60s...")
+                time.sleep(60)
+    return out
+
+
 def main() -> None:
     # Optional: load a local .env if python-dotenv is installed.
     try:
@@ -220,14 +270,16 @@ def main() -> None:
     docs = build_stint_documents(year, gp) + build_result_documents(year, gp)
     print(f"Built {len(docs)} documents (stints + results) for {year} {gp}.")
 
-    supabase = create_client(supabase_url, supabase_key)  #a template
-    SupabaseVectorStore.from_documents(   ##automatically map page_content to content, metadat to metadata, embedding to embedding
-        docs,
-         OllamaEmbeddings(model=EMBEDDING_MODEL),
-        client=supabase,
-        table_name="documents",
-        query_name="match_documents",
-    )
+    # Insert directly instead of SupabaseVectorStore.from_documents: the wrapper now
+    # sends client-side UUIDs as `id`, which the bigserial primary key rejects.
+    supabase = create_client(supabase_url, supabase_key)
+    embeddings = embed_with_backoff([d.page_content for d in docs])
+    rows = [
+        {"content": d.page_content, "metadata": d.metadata, "embedding": e}
+        for d, e in zip(docs, embeddings)
+    ]
+    for i in range(0, len(rows), 100):
+        supabase.table("documents").insert(rows[i:i + 100]).execute()
     print(f"Inserted {len(docs)} documents into Supabase 'documents' table.")
 
 

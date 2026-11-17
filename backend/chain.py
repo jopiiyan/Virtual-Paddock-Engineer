@@ -6,7 +6,7 @@ import sys
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_ollama import ChatOllama
+from backend.models import get_llm
 
 from backend.vectorstore import get_vector_store
 
@@ -35,7 +35,7 @@ def format_docs(docs) -> str:
 
 def build_chain():
     retriever = get_vector_store().as_retriever(search_kwargs={"k": RETRIEVAL_K})
-    llm = ChatOllama(model="llama3.2", temperature=0) #temperature = 0, be as deterministic as possible
+    llm = get_llm() #temperature = 0, be as deterministic as possible
     return (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
         | PROMPT
