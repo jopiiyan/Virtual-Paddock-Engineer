@@ -1,10 +1,21 @@
-name: tests
+# CI/CD for Virtual Paddock Engineer
+#
+#   every push / PR ──► pytest (CI)
+#   push to main    ──► pytest ──► deploy to Azure Container Apps (CD)
+#
+# The Azure apps, registry and secrets already exist (created once by hand / scripts/deploy-azure.sh).
+# CD only builds new images and points the two apps at them.
+name: ci-cd
 
 on:
   push:
   pull_request:
+  workflow_dispatch:          # adds a "Run workflow" button in the Actions tab (manual redeploy)
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # CI — runs on every push and pull request
+  # ---------------------------------------------------------------------------
   pytest:
     runs-on: ubuntu-latest
     steps:
@@ -23,3 +34,68 @@ jobs:
         # Deterministic gate: metric correctness, RRF fusion, tokenization, config,
         # pipeline control-flow. No Ollama / Supabase / Gemini contacted.
         run: python -m pytest backend/tests -q
+
+  # ---------------------------------------------------------------------------
+  # CD — only on main, only if the tests passed
+  # ---------------------------------------------------------------------------
+  deploy:
+    needs: pytest                                   # no green tests -> no deploy
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest                          # amd64 machine = same chip type as Azure, no emulation
+    concurrency:
+      group: deploy                                 # two quick pushes deploy one after the other, never at once
+      cancel-in-progress: false
+    permissions:
+      id-token: write                               # lets GitHub issue a short-lived OIDC token for Azure login
+      contents: read
+    env:
+      RG: paddock-rg
+      ACR: paddockreg15457
+      API: paddock-api
+      WEB: paddock-web
+      TAG: ${{ github.sha }}                        # image tag = commit hash -> you always know what's live
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Log in to Azure WITHOUT a stored password: Azure trusts tokens that GitHub signs for this
+      # repo's main branch (federated credential on the "paddock-github" managed identity).
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log Docker in to the registry
+        run: az acr login -n "$ACR"
+
+      - name: Build + push backend image
+        run: |
+          docker build -t "$ACR.azurecr.io/paddock-backend:$TAG" -f backend/Dockerfile .
+          docker push "$ACR.azurecr.io/paddock-backend:$TAG"
+
+      - name: Build + push frontend image
+        run: |
+          docker build -t "$ACR.azurecr.io/paddock-frontend:$TAG" ./frontend
+          docker push "$ACR.azurecr.io/paddock-frontend:$TAG"
+
+      # Point each app at its new image. Azure starts a new revision and switches traffic to it.
+      # Secrets and env vars stored on the apps are left untouched.
+      - name: Update backend app
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update -g "$RG" -n "$API" --image "$ACR.azurecr.io/paddock-backend:$TAG" -o none
+
+      - name: Update frontend app
+        run: az containerapp update -g "$RG" -n "$WEB" --image "$ACR.azurecr.io/paddock-frontend:$TAG" -o none
+
+      # Smoke test: hit the live site through nginx. Retries cover cold start / revision switch-over.
+      - name: Smoke test live site
+        run: |
+          URL="https://$(az containerapp show -g "$RG" -n "$WEB" --query properties.configuration.ingress.fqdn -o tsv)"
+          echo "Live at $URL"
+          curl --fail --silent --show-error --retry 10 --retry-delay 10 --retry-all-errors "$URL/api/health"
+          echo
+          curl --fail --silent --show-error --retry 5 --retry-delay 10 --retry-all-errors -o /dev/null "$URL/api/filters"
+          echo "Smoke test passed ✅"

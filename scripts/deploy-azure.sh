@@ -3,12 +3,19 @@
 #
 #   Browser ──► paddock-web (nginx, PUBLIC) ──/api──► paddock-api (FastAPI, PRIVATE) ──► Supabase / Gemini
 #
-# Prereqs (once):  brew install azure-cli && az login
+# Prereqs (once):  brew install azure-cli && az login ; Docker Desktop running
 # Usage (from the repo root):   bash scripts/deploy-azure.sh
-#   Optional overrides:         LOCATION=southeastasia bash scripts/deploy-azure.sh
 #
 # Safe to re-run: the first run creates everything, later runs rebuild the images and
 # update the two apps in place (same URL).
+#
+# Lessons baked in from the first (manual) deploy on an Azure for Students subscription:
+#   - Only these regions are allowed: japaneast, japanwest, eastasia, malaysiawest, indonesiacentral.
+#   - eastasia (Hong Kong) can't call the Gemini API ("User location is not supported") -> use japaneast.
+#   - Cloud builds (az acr build / "ACR Tasks") are blocked -> build locally for amd64 and push.
+#   - Only ONE Container Apps environment is allowed per subscription.
+#   - "Express" environments break private app-to-app calls -> create a ConsumptionOnly environment.
+#   - Registry login must be passed explicitly (--registry-username/--registry-password).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."            # always run from the repo root
@@ -16,18 +23,15 @@ cd "$(dirname "$0")/.."            # always run from the repo root
 # ---------------------------------------------------------------------------
 # 0. Settings
 # ---------------------------------------------------------------------------
-LOCATION="${LOCATION:-eastus}"      # Azure region. Student subscriptions only allow some regions;
-                                    # if a step fails with "RequestDisallowedByPolicy", pick another.
+LOCATION="${LOCATION:-japaneast}"   # where the apps run (must be allowed AND supported by Gemini)
+ACR_LOCATION="${ACR_LOCATION:-eastasia}"  # where the registry lives (any allowed region works)
 RG="paddock-rg"                     # resource group = one folder holding every resource below
-ENV_NAME="paddock-env"              # Container Apps environment = shared private network for both apps
+ACR="${ACR:-paddockreg15457}"       # registry name (globally unique; this is the one already created)
+ENV_NAME="paddock-jp"               # Container Apps environment = shared private network for both apps
 API="paddock-api"                   # backend app name (also its private address: http://paddock-api)
 WEB="paddock-web"                   # frontend app name (gets the public URL)
 TAG="$(date +%Y%m%d%H%M%S)"         # new image tag each deploy, so Azure always picks up the new build
-
-# Registry names must be globally unique, lowercase letters/digits only.
-# Derive a stable one from the subscription id so re-runs reuse the same registry.
-SUB_ID="$(az account show --query id -o tsv)"
-ACR="paddock$(echo "$SUB_ID" | tr -d '-' | cut -c1-10)"
+REGISTRY="$ACR.azurecr.io"
 
 # Secrets come from .env (same file docker-compose uses). Loaded into this shell only, never printed.
 if [[ ! -f .env ]]; then echo "Missing .env in repo root" >&2; exit 1; fi
@@ -48,34 +52,40 @@ done
 # ---------------------------------------------------------------------------
 # 2. Resource group (delete it later to remove EVERYTHING:  az group delete -n paddock-rg)
 # ---------------------------------------------------------------------------
-step "Resource group: $RG ($LOCATION)"
-az group create -n "$RG" -l "$LOCATION" -o none
+step "Resource group: $RG"
+if ! az group show -n "$RG" -o none 2>/dev/null; then
+  az group create -n "$RG" -l "$ACR_LOCATION" -o none
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Container registry (stores the images). Basic tier ≈ $5/month, paid from student credit.
 # ---------------------------------------------------------------------------
 step "Container registry: $ACR"
 if ! az acr show -n "$ACR" -o none 2>/dev/null; then
-  az acr create -g "$RG" -n "$ACR" --sku Basic --admin-enabled true -o none
+  az acr create -g "$RG" -n "$ACR" -l "$ACR_LOCATION" --sku Basic --admin-enabled true -o none
 fi
-REGISTRY="$ACR.azurecr.io"
+ACR_PASSWORD="$(az acr credential show -n "$ACR" --query 'passwords[0].value' -o tsv)"
 
 # ---------------------------------------------------------------------------
-# 4. Build images IN AZURE (not on the Mac): Azure runs amd64, the Mac is arm64.
-#    The local folder is uploaded (minus .dockerignore'd files) and built remotely.
+# 4. Build images ON THIS MAC for amd64 (Azure's chip type; the Mac is arm64) and push them.
+#    (Cloud builds with `az acr build` are blocked on student subscriptions.)
 # ---------------------------------------------------------------------------
-step "Building backend image (cloud build)"
-az acr build -r "$ACR" -t "paddock-backend:$TAG" -f backend/Dockerfile . --only-show-errors
+step "Logging Docker in to $REGISTRY"
+az acr login -n "$ACR" --only-show-errors
 
-step "Building frontend image (cloud build)"
-az acr build -r "$ACR" -t "paddock-frontend:$TAG" ./frontend --only-show-errors
+step "Building + pushing backend image"
+docker buildx build --platform linux/amd64 -t "$REGISTRY/paddock-backend:$TAG" -f backend/Dockerfile --push .
+
+step "Building + pushing frontend image"
+docker buildx build --platform linux/amd64 -t "$REGISTRY/paddock-frontend:$TAG" --push ./frontend
 
 # ---------------------------------------------------------------------------
-# 5. Container Apps environment (first run takes a few minutes)
+# 5. Container Apps environment — ConsumptionOnly (NOT Express), so apps can call each other by name.
 # ---------------------------------------------------------------------------
 step "Container Apps environment: $ENV_NAME"
 if ! az containerapp env show -g "$RG" -n "$ENV_NAME" -o none 2>/dev/null; then
-  az containerapp env create -g "$RG" -n "$ENV_NAME" -l "$LOCATION" -o none
+  az containerapp env create -g "$RG" -n "$ENV_NAME" -l "$LOCATION" \
+    --environment-mode ConsumptionOnly -o none
 fi
 
 # ---------------------------------------------------------------------------
@@ -98,10 +108,13 @@ API_ENV=(
 )
 if ! az containerapp show -g "$RG" -n "$API" -o none 2>/dev/null; then
   az containerapp create -g "$RG" -n "$API" --environment "$ENV_NAME" \
-    --image "$REGISTRY/paddock-backend:$TAG" --registry-server "$REGISTRY" \
+    --image "$REGISTRY/paddock-backend:$TAG" \
+    --registry-server "$REGISTRY" --registry-username "$ACR" --registry-password "$ACR_PASSWORD" \
     --ingress internal --target-port 8000 \
     --cpu 0.5 --memory 1.0Gi --min-replicas 0 --max-replicas 1 \
     --secrets "${SECRETS[@]}" --env-vars "${API_ENV[@]}" -o none
+  # Let nginx call it over plain http INSIDE the environment (still private to the internet).
+  az containerapp ingress update -g "$RG" -n "$API" --allow-insecure -o none
 else
   az containerapp secret set -g "$RG" -n "$API" --secrets "${SECRETS[@]}" -o none
   az containerapp update -g "$RG" -n "$API" \
@@ -115,7 +128,8 @@ fi
 step "Frontend app: $WEB"
 if ! az containerapp show -g "$RG" -n "$WEB" -o none 2>/dev/null; then
   az containerapp create -g "$RG" -n "$WEB" --environment "$ENV_NAME" \
-    --image "$REGISTRY/paddock-frontend:$TAG" --registry-server "$REGISTRY" \
+    --image "$REGISTRY/paddock-frontend:$TAG" \
+    --registry-server "$REGISTRY" --registry-username "$ACR" --registry-password "$ACR_PASSWORD" \
     --ingress external --target-port 80 \
     --cpu 0.25 --memory 0.5Gi --min-replicas 0 --max-replicas 1 \
     --env-vars "BACKEND_URL=http://$API" -o none
