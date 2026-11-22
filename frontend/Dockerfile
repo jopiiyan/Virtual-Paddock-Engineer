@@ -14,6 +14,10 @@ RUN npm run build
 
 # ---- Stage 2: serve with nginx ----
 FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copied as a *template*: at startup the nginx image replaces ${BACKEND_URL} with the
+# env var's value and writes the result to /etc/nginx/conf.d/default.conf.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Default = docker-compose backend. Azure overrides it with --env-vars BACKEND_URL=...
+ENV BACKEND_URL=http://backend:8000
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

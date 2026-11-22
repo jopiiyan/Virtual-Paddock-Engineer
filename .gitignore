@@ -8,3 +8,5 @@ backend/f1_cache/
 .DS_Store
 .claude
 explanation.md
+node_modules/
+frontend/dist/
