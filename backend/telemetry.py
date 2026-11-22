@@ -12,6 +12,7 @@ and kept in an in-process cache so repeat requests are fast.
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import fastf1
 
 # Cache FIRST, before any other fastf1 call (see project gotchas).
@@ -41,6 +42,8 @@ def get_schedule(year: int = 2025) -> list[dict]:
                 "name": str(r["EventName"]),
                 "location": str(r["Location"]),
                 "country": str(r["Country"]),
+                # Race-day date for the UI picker, e.g. "06 Jul".
+                "date": r["EventDate"].strftime("%d %b") if pd.notna(r["EventDate"]) else None,
             }
             for _, r in sched.iterrows()
         ]

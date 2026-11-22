@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Virtual Paddock Engineer</title>
+    <meta name="description" content="Ask a race engineer about 2025 Formula 1 races — every answer shows its receipts." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&display=swap" />
+    <script>
+      // Apply the saved/OS theme before first paint to avoid a light→dark flash.
+      (function () {
+        var m = null
+        try { m = localStorage.getItem('vpe-mode') } catch (e) {}
+        if (m !== 'light' && m !== 'dark') m = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.setAttribute('data-vpe-mode', m)
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -14,13 +14,6 @@ export async function fetchSchedule(year = 2025) {
   return res.json()
 }
 
-export async function fetchTelemetry({ drivers, grand_prix, session_type = 'R', year = 2025 }) {
-  const q = new URLSearchParams({ drivers: drivers.join(','), grand_prix, session_type, year })
-  const res = await fetch(`${API_BASE}/api/telemetry?${q}`)
-  if (!res.ok) throw new Error(`telemetry ${res.status}`)
-  return res.json()
-}
-
 // Consume the SSE stream from POST /api/chat/stream.
 // EventSource is GET-only, so we use fetch + a manual reader and buffer partial
 // events (network chunks don't align to "\n\n" SSE boundaries).
@@ -35,6 +28,7 @@ export async function streamChat(body, { onSources, onToken, onDone }) {
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let finished = false
 
   while (true) {
     const { value, done } = await reader.read()
@@ -50,7 +44,10 @@ export async function streamChat(body, { onSources, onToken, onDone }) {
       const payload = JSON.parse(line.slice(5).trim())
       if (payload.type === 'sources') onSources?.(payload)
       else if (payload.type === 'token') onToken?.(payload.text)
-      else if (payload.type === 'done') onDone?.()
+      else if (payload.type === 'done') { finished = true; onDone?.() }
     }
   }
+  // The backend always ends with a "done" event; a stream that stops early means the
+  // server failed mid-answer (e.g. the model hit its quota), so surface it as an error.
+  if (!finished) throw new Error('stream ended early')
 }

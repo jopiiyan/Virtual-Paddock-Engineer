@@ -10,3 +10,6 @@ backend/f1_cache/
 explanation.md
 node_modules/
 frontend/dist/
+
+# Design exports (local reference only)
+Virtual Paddock Engineer UI/
