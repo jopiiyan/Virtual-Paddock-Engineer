@@ -19,11 +19,32 @@ JOLPICA_BASE = "https://api.jolpi.ca/ergast/f1"
 
 # Our grand_prix names (stored in metadata, shown in the UI) -> Jolpica circuitId.
 # OpenF1 matches our names directly on its `location` field.
+# Keys are OpenF1 `location` names (all 24 rounds of 2025, in calendar order).
 JOLPICA_CIRCUITS = {
+    "Melbourne": "albert_park",
+    "Shanghai": "shanghai",
+    "Suzuka": "suzuka",
+    "Sakhir": "bahrain",
+    "Jeddah": "jeddah",
+    "Miami Gardens": "miami",
+    "Imola": "imola",
     "Monaco": "monaco",
-    "Monza": "monza",
+    "Barcelona": "catalunya",
+    "Montréal": "villeneuve",
+    "Spielberg": "red_bull_ring",
     "Silverstone": "silverstone",
     "Spa-Francorchamps": "spa",
+    "Budapest": "hungaroring",
+    "Zandvoort": "zandvoort",
+    "Monza": "monza",
+    "Baku": "baku",
+    "Marina Bay": "marina_bay",
+    "Austin": "americas",
+    "Mexico City": "rodriguez",
+    "São Paulo": "interlagos",
+    "Las Vegas": "vegas",
+    "Lusail": "losail",
+    "Yas Island": "yas_marina",
 }
 
 

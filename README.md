@@ -152,8 +152,10 @@ INGEST_GP=Silverstone
 cd backend
 pip install -r requirements.txt
 
-# Ingest a race into Supabase (one-time, per race)
-python -m backend.ingestion
+# Ingest races into Supabase (re-running a race replaces it, never duplicates).
+# INGEST_GP takes one race or a comma-separated list (OpenF1 location names);
+# each race also needs an entry in JOLPICA_CIRCUITS in backend/f1data.py.
+INGEST_YEAR=2025 INGEST_GP="Suzuka,Sakhir,Barcelona" python -m backend.ingestion
 
 # Start the API
 uvicorn backend.api:app --reload --port 8000

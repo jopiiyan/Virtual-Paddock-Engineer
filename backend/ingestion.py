@@ -169,7 +169,66 @@ def fmt_racetime(td) -> str | None:
     return f"{int(minutes)}:{seconds:06.3f}"
 
 
-def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[Document]:
+def summary_chunk_id(year: int, gp: str, session_type: str) -> str:
+    """Deterministic, re-ingest-stable id for a race-summary document."""
+    return f"{year}_{gp}_{session_type}_summary"
+
+
+def build_summary_document(year: int, gp: str, session_type: str = "R",
+                           results: list[dict] | None = None) -> Document:
+    """ONE Document per race covering the whole field: podium, full classification,
+    points per team, fastest lap, retirements.
+
+    Why: per-driver docs can't answer whole-field questions ("who was on the podium?",
+    "which team scored most?") because retrieval only returns a handful of them, and
+    similarity search doesn't know "podium" means P1-P3. One summary doc can.
+    """
+    session_label = SESSION_LABELS.get(session_type, session_type)
+    results = results if results is not None else jolpica_race_results(year, gp)
+
+    def who(r):
+        return f'{r["Driver"]["code"].upper()} ({r["Driver"]["givenName"]} {r["Driver"]["familyName"]}, {r["Constructor"]["name"]})'
+
+    finishers = [r for r in results if r["positionText"].isdigit()]
+    finishers.sort(key=lambda r: int(r["position"]))
+    retired = [r for r in results if not r["positionText"].isdigit()]
+
+    team_points: dict[str, float] = {}
+    for r in results:
+        team_points[r["Constructor"]["name"]] = team_points.get(r["Constructor"]["name"], 0.0) + float(r["points"])
+    teams = sorted(team_points.items(), key=lambda kv: -kv[1])
+
+    fastest = next((r for r in results if r.get("FastestLap", {}).get("rank") == "1"), None)
+
+    parts = [f"Race summary: {year} {gp} {session_label}."]
+    if finishers:
+        parts.append(f"Winner: {who(finishers[0])}.")
+        parts.append("Podium: " + ", ".join(f"P{r['position']} {who(r)}" for r in finishers[:3]) + ".")
+        parts.append("Full classification: " + "; ".join(
+            f"P{r['position']} {r['Driver']['code'].upper()} ({r['Constructor']['name']}, "
+            f"{float(r['points']):g} pts, from grid P{r['grid']})" for r in finishers) + ".")
+    if retired:
+        parts.append("Did not finish / not classified: " + "; ".join(
+            f"{r['Driver']['code'].upper()} ({r['status']})" for r in retired) + ".")
+    parts.append("Points by team: " + "; ".join(f"{t} {p:g}" for t, p in teams) + ".")
+    if fastest:
+        parts.append(f"Fastest lap: {who(fastest)}, {fastest['FastestLap']['Time']['time']} "
+                     f"on lap {fastest['FastestLap']['lap']}.")
+
+    return Document(
+        page_content=" ".join(parts),
+        metadata={
+            "chunk_id": summary_chunk_id(year, gp, session_type),
+            "year": year,
+            "grand_prix": gp,
+            "session_type": session_type,
+            "doc_type": "summary",
+        },
+    )
+
+
+def build_result_documents(year: int, gp: str, session_type: str = "R",
+                           results: list[dict] | None = None) -> list[Document]:
     """One Document per driver giving their race finishing result.
 
     page_content is natural-language (winner / position / finishing time or gap /
@@ -178,7 +237,7 @@ def build_result_documents(year: int, gp: str, session_type: str = "R") -> list[
     else's Time is the gap to the winner.
     """
     session_label = SESSION_LABELS.get(session_type, session_type)
-    results = jolpica_race_results(year, gp)
+    results = results if results is not None else jolpica_race_results(year, gp)
     # Jolpica gives every finisher an absolute race time in millis.
     winner_ms = int(results[0]["Time"]["millis"]) if results and "Time" in results[0] else None
     winner_time = fmt_racetime(pd.Timedelta(milliseconds=winner_ms)) if winner_ms else None
@@ -265,22 +324,42 @@ def main() -> None:
     supabase_url = os.environ["SUPABASE_URL"]
     supabase_key = os.environ["SUPABASE_SERVICE_KEY"]
     year = int(os.environ.get("INGEST_YEAR", "2025"))
-    gp = os.environ.get("INGEST_GP", "Silverstone")
+    # One race or several, comma-separated, e.g. INGEST_GP="Suzuka,Sakhir,Barcelona".
+    gps = [g.strip() for g in os.environ.get("INGEST_GP", "Silverstone").split(",") if g.strip()]
 
-    docs = build_stint_documents(year, gp) + build_result_documents(year, gp)
-    print(f"Built {len(docs)} documents (stints + results) for {year} {gp}.")
-
-    # Insert directly instead of SupabaseVectorStore.from_documents: the wrapper now
-    # sends client-side UUIDs as `id`, which the bigserial primary key rejects.
     supabase = create_client(supabase_url, supabase_key)
+    for n, gp in enumerate(gps, 1):
+        print(f"[{n}/{len(gps)}] {year} {gp}")
+        ingest_race(supabase, year, gp)
+
+
+def ingest_race(supabase, year: int, gp: str, session_type: str = "R") -> None:
+    """Build, embed and store one race. Idempotent: replaces any rows already stored
+    for the same (year, grand_prix, session_type), so re-running never duplicates."""
+    results = jolpica_race_results(year, gp)
+    docs = (build_stint_documents(year, gp, session_type)
+            + build_result_documents(year, gp, session_type, results)
+            + [build_summary_document(year, gp, session_type, results)])
+    print(f"  built {len(docs)} documents (stints + results + 1 summary)")
+
+    # Embed BEFORE deleting anything, so a failure (rate limit, API error) leaves
+    # whatever was stored for this race untouched.
     embeddings = embed_with_backoff([d.page_content for d in docs])
     rows = [
         {"content": d.page_content, "metadata": d.metadata, "embedding": e}
         for d, e in zip(docs, embeddings)
     ]
+
+    scope = {"year": year, "grand_prix": gp, "session_type": session_type}
+    removed = supabase.table("documents").delete().contains("metadata", scope).execute().data
+    if removed:
+        print(f"  replaced {len(removed)} existing rows for this race")
+
+    # Insert directly instead of SupabaseVectorStore.from_documents: the wrapper now
+    # sends client-side UUIDs as `id`, which the bigserial primary key rejects.
     for i in range(0, len(rows), 100):
         supabase.table("documents").insert(rows[i:i + 100]).execute()
-    print(f"Inserted {len(docs)} documents into Supabase 'documents' table.")
+    print(f"  inserted {len(rows)} documents")
 
 
 if __name__ == "__main__":

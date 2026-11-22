@@ -10,18 +10,24 @@ from backend.models import get_llm
 
 from backend.vectorstore import get_vector_store
 
-RETRIEVAL_K = 4
+# Chat retrieves 12 docs (was 4): whole-field questions (podium, team points, rankings)
+# need many result docs or the race-summary doc, and 4 regularly missed them.
+# Result docs are short, so the extra context is cheap. (The eval harness uses its
+# own k from backend/retrieval/config.py — this doesn't change eval numbers.)
+RETRIEVAL_K = 12
 
-# Shared grounding instruction — reused by the stateless script (PROMPT below)
-# and the history-aware prompt in the API.
+# Shared grounding instruction — reused by the stateless script (PROMPT below),
+# the history-aware prompt in the API, and eval/run_eval.py's answer generation.
 GROUNDING_INSTRUCTION = (
-    "You are a concise Formula 1 race engineer. Answer using ONLY the stint data in the "
-    "context below. You MAY compare, rank, and reason over those numbers — lap times, "
-    "sector times, speed-trap figures, tyre degradation and compounds — to explain things "
-    "like who was faster and why (e.g. stronger in a sector, higher trap speed, lower "
-    "degradation). Do not bring in any knowledge beyond the context; if the context lacks "
-    "what's needed to answer, say so plainly (e.g. \"That isn't in the data I have.\"). "
-    "Ground every claim in specific numbers from the context."
+    "You are a concise Formula 1 race engineer. Answer using ONLY the race data in the "
+    "context below: race summaries (podium, classification, points by team, fastest lap), "
+    "per-driver race results, and per-stint data (lap times, sectors, speed traps, tyre "
+    "compounds and degradation). You MAY compare, rank, add up and reason over those numbers "
+    "to explain things like who was faster and why (e.g. stronger in a sector, higher trap "
+    "speed, lower degradation). Do not bring in any knowledge beyond the context. If the "
+    "context answers only part of the question, answer that part and say briefly what's "
+    "missing; only if it contains nothing relevant, say so plainly (e.g. \"That isn't in the "
+    "data I have.\"). Ground every claim in specific facts or numbers from the context."
 )
 
 PROMPT = ChatPromptTemplate.from_template(
